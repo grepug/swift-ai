@@ -34,6 +34,12 @@ public struct LLMHTTPClientRequestInfo {
     public var body: Data {
         let json: [String: Any] = [
             "model": model.name,
+            "messages": [
+                [
+                    "role": "user",
+                    "content": prompt,
+                ]
+            ],
             "prompt": prompt,
             "max_tokens": 60,
             "temperature": 0.5,
