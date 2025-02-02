@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:swift-ai}",
+      "name": "Debug SwiftAI",
+      "program": "${workspaceFolder:swift-ai}/.build/debug/SwiftAI",
+      "preLaunchTask": "swift: Build Debug SwiftAI"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["swift"],
+      "args": [],
+      "cwd": "${workspaceFolder:swift-ai}",
+      "name": "Release SwiftAI",
+      "program": "${workspaceFolder:swift-ai}/.build/release/SwiftAI",
+      "preLaunchTask": "swift: Build Release SwiftAI"
+    }
+  ]
+}
