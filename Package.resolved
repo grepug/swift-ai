@@ -1,0 +1,15 @@
+{
+  "originHash" : "501ba557dae75e1bc860cb1f34290573eee524c9b5cf2023fedfefcebce058b5",
+  "pins" : [
+    {
+      "identity" : "event-source",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/grepug/event-source.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "9573201033c457f0786e4419fea8752bde0a52c1"
+      }
+    }
+  ],
+  "version" : 3
+}

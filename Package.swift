@@ -14,6 +14,9 @@ let package = Package(
             name: "swift-ai",
             targets: ["SwiftAI"])
     ],
+    dependencies: [
+        .package(url: "https://github.com/grepug/event-source.git", branch: "master")
+    ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
@@ -21,7 +24,10 @@ let package = Package(
             name: "SwiftAI"),
         .testTarget(
             name: "swift-aiTests",
-            dependencies: ["swift-ai"]
+            dependencies: [
+                "SwiftAI",
+                .product(name: "EventSource", package: "event-source"),
+            ]
         ),
     ]
 )

@@ -1,5 +1,9 @@
 import Foundation
 
+public enum LLMRunnerError: Error {
+    case generateTextNothingReturned
+}
+
 public class LLMRunner<PromptProvider: LLMPromptProvider, Client: LLMHTTPClient> {
     let promptProvider: PromptProvider
     let modelProvider: LLMModelProvider
@@ -16,10 +20,12 @@ public class LLMRunner<PromptProvider: LLMPromptProvider, Client: LLMHTTPClient>
         let stream = try await client.request()
 
         for try await item in stream {
+            try await client.shutdown()
             return item
         }
 
-        return ""
+        try await client.shutdown()
+        throw LLMRunnerError.generateTextNothingReturned
     }
 
     public func streamText(key: PromptProvider.Key, params: PromptProvider.Params) async -> AsyncThrowingStream<String, Error> {
@@ -36,9 +42,13 @@ public class LLMRunner<PromptProvider: LLMPromptProvider, Client: LLMHTTPClient>
                     for try await item in stream {
                         continuation.yield(item)
                     }
+                    
+                    continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
                 }
+
+                try? await client.shutdown()
             }
         } catch {
             continuation.finish(throwing: error)
