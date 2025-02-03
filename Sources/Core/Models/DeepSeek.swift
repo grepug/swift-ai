@@ -17,7 +17,7 @@ public struct DeepSeekSF: LLMModel {
     public let baseURL: URL
     public let apiKey: String
 
-    public enum Version {
+    public enum Version: String {
         case v2_5
         case v3
 
@@ -29,9 +29,9 @@ public struct DeepSeekSF: LLMModel {
         }
     }
 
-    public init(apiKey: String, version: Version = .v2_5, baseURL: URL? = nil) {
+    public init(apiKey: String, version: Version? = .v2_5, baseURL: URL? = nil) {
         self.apiKey = apiKey
-        self.name = version.name
+        self.name = (version ?? .v2_5).name
         self.baseURL = baseURL ?? URL(string: "https://api.siliconflow.cn/v1")!
     }
 }
