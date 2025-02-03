@@ -19,13 +19,17 @@ final public class LLMRunner<PromptProvider: LLMPromptProvider, Client: LLMHTTPC
         let client = Client(prompt: prompt, model: model, stream: false)
         let stream = try await client.request()
 
-        for try await item in stream {
-            try await client.shutdown()
-            return item
-        }
+        do {
+            for try await item in stream {
+                try await client.shutdown()
+                return item
+            }
 
-        try await client.shutdown()
-        throw LLMRunnerError.generateTextNothingReturned
+            throw LLMRunnerError.generateTextNothingReturned
+        } catch {
+            try await client.shutdown()
+            throw error
+        }
     }
 
     public func streamText(key: PromptProvider.Key, params: PromptProvider.Params) async -> AsyncThrowingStream<String, Error> {
