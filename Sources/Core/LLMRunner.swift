@@ -4,7 +4,7 @@ public enum LLMRunnerError: Error {
     case generateTextNothingReturned
 }
 
-public class LLMRunner<PromptProvider: LLMPromptProvider, Client: LLMHTTPClient> {
+final public class LLMRunner<PromptProvider: LLMPromptProvider, Client: LLMHTTPClient>: Sendable {
     let promptProvider: PromptProvider
     let modelProvider: LLMModelProvider
 
@@ -42,7 +42,7 @@ public class LLMRunner<PromptProvider: LLMPromptProvider, Client: LLMHTTPClient>
                     for try await item in stream {
                         continuation.yield(item)
                     }
-                    
+
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
