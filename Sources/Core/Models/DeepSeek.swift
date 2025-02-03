@@ -17,9 +17,21 @@ public struct DeepSeekSF: LLMModel {
     public let baseURL: URL
     public let apiKey: String
 
-    public init(apiKey: String, name: String = "deepseek-ai/DeepSeek-V3", baseURL: URL? = nil) {
+    public enum Version {
+        case v2_5
+        case v3
+
+        var name: String {
+            switch self {
+            case .v2_5: "deepseek-ai/DeepSeek-V2.5"
+            case .v3: "deepseek-ai/DeepSeek-V3"
+            }
+        }
+    }
+
+    public init(apiKey: String, version: Version = .v2_5, baseURL: URL? = nil) {
         self.apiKey = apiKey
-        self.name = name
+        self.name = version.name
         self.baseURL = baseURL ?? URL(string: "https://api.siliconflow.cn/v1")!
     }
 }

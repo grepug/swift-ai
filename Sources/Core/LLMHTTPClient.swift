@@ -16,27 +16,34 @@ extension LLMHTTPClient {
         .init(model: model, prompt: prompt, stream: stream)
     }
 
-    public func decodeResponse(data: Data) -> String {
+    public func decodeResponse(data: Data) -> [String] {
         let decoder = JSONDecoder()
         let string = String(data: data, encoding: .utf8)!
 
         if stream {
-            if let result = try? decoder.decode(LLMHTTPChunkedResponse.self, from: data),
-               !result.choices.isEmpty {
-                return result.choices[0].delta.content ?? ""
+            let lines = string.split(separator: "\n")
+
+            return lines.map { line in
+                if let result = try? decoder.decode(LLMHTTPChunkedResponse.self, from: Data(line.utf8)),
+                    !result.choices.isEmpty
+                {
+                    return result.choices[0].delta.content ?? ""
+                }
+
+                return String(line)
             }
         } else {
             if let result = try? decoder.decode(LLMHTTPResponse.self, from: data), !result.choices.isEmpty {
-                return result.choices[0].message.content
+                return [result.choices[0].message.content]
             }
         }
 
-        return string
+        return [string]
     }
 
-    public func decodeResponse(string: String) -> String {
+    public func decodeResponse(string: String) -> [String] {
         guard let data = string.data(using: .utf8) else {
-            return string
+            return [string]
         }
 
         return decodeResponse(data: data)
@@ -72,18 +79,16 @@ public struct LLMHTTPClientRequestInfo {
                     "content": prompt,
                 ]
             ],
-            "max_tokens": 60,
-            "temperature": 0.5,
-            "top_p": 1.0,
-            "frequency_penalty": 0.0,
-            "presence_penalty": 0.0,
-            "stop": ["\n"],
+            // "max_tokens": 60,
+            // "temperature": 0.5,
+            // "top_p": 1.0,
+            // "frequency_penalty": 0.0,
+            // "presence_penalty": 0.0,
+            // "stop": ["\n"],
             "stream": stream,
         ]
 
         let data = try! JSONSerialization.data(withJSONObject: json)
-
-        print("data: \(String(data: data, encoding: .utf8)!)")
 
         return data
     }
@@ -120,6 +125,7 @@ public struct LLMHTTPChunkedResponse: Decodable {
     public struct Choice: Decodable {
         public struct Delta: Decodable {
             let content: String?
+            let reasoning_content: String?
         }
 
         public struct ContentFilterResults: Decodable {
