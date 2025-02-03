@@ -23,7 +23,7 @@ struct Client: ClientKind, Sendable {
 
     func data(for request: ConcurrencyUtils.ClientRequest) async throws -> Data {
         let request = request.httpClientRequest
-        let response = try await client.execute(request, timeout: .seconds(30), logger: logger)
+        let response = try await client.execute(request, timeout: .seconds(60), logger: logger)
         var bytes = try await response.body.collect(upTo: 1024 * 1024)
 
         return bytes.readData(length: bytes.readableBytes)!
