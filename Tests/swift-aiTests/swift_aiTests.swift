@@ -56,8 +56,11 @@ struct Client: LLMHTTPClient {
             Task {
                 do {
                     for try await item in stream {
-                        let string = decodeResponse(string: item)
-                        continuation.yield(string)
+                        let strings = decodeResponse(string: item)
+
+                        for string in strings {
+                            continuation.yield(string)
+                        }
                     }
 
                     continuation.finish()
@@ -68,8 +71,11 @@ struct Client: LLMHTTPClient {
         } else {
             do {
                 let (data, _) = try await URLSession.shared.data(for: urlRequest)
+                let strings = decodeResponse(data: data)
 
-                continuation.yield(decodeResponse(data: data))
+                for string in strings {
+                    continuation.yield(string)
+                }
                 continuation.finish()
             } catch {
                 continuation.finish(throwing: error)
