@@ -1,9 +1,9 @@
-public struct LLMStaticTextPrompt<Key: Sendable, Input: LLMPromptInput>: LLMPrompt {
-    public let key: Key
+public struct LLMStaticTextPrompt<Input: LLMPromptInput>: LLMPrompt {
+    public let key: String
     public let input: Input
     public let staticTemplate: String
 
-    public init(key: Key, input: Input, staticTemplate: String) {
+    public init(key: String, input: Input, staticTemplate: String) {
         self.key = key
         self.input = input
         self.staticTemplate = staticTemplate

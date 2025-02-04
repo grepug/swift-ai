@@ -3,11 +3,10 @@ import Foundation
 public typealias LLMPromptOutput = Codable & Sendable
 
 public protocol LLMPrompt: Sendable {
-    associatedtype Key
     associatedtype Input: LLMPromptInput
     associatedtype Output: LLMPromptOutput
 
-    var key: Key { get }
+    var key: String { get }
     var input: Input { get }
 
     func template() async throws -> String

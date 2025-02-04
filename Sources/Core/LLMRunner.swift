@@ -41,10 +41,10 @@ final public class LLMRunner<Client: LLMHTTPClient>: Sendable {
 
             Task {
                 do {
-                    var output = ""
+                    var accumulatedString = ""
 
                     for try await item in stream {
-                        let (output, shouldStop) = prompt.transform(chunk: item, accumulatedString: &output)
+                        let (output, shouldStop) = prompt.transform(chunk: item, accumulatedString: &accumulatedString)
 
                         if let output {
                             continuation.yield(output)
