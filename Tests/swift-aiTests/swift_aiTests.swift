@@ -7,7 +7,7 @@ import Testing
 @Test func example() async throws {
     let runner = LLMRunner(
         models: [
-            DeepSeekSF(apiKey: "sk-bfwsvwnbgyuetpjfycrmeavfvrmspihhkgrwpcofhtbqldje")
+            SiliconFlow(apiKey: "sk-bfwsvwnbgyuetpjfycrmeavfvrmspihhkgrwpcofhtbqldje")
         ],
         promptProvider: MyPromptProvider(),
         client: Client.self
