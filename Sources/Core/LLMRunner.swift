@@ -4,25 +4,23 @@ public enum LLMRunnerError: Error {
     case generateTextNothingReturned
 }
 
-final public class LLMRunner<PromptProvider: LLMPromptProvider, Client: LLMHTTPClient>: Sendable {
-    let promptProvider: PromptProvider
+final public class LLMRunner<Client: LLMHTTPClient>: Sendable {
     let modelProvider: LLMModelProvider
 
-    public init(models: [any LLMModel], promptProvider: PromptProvider, client: Client.Type) {
+    public init(models: [any LLMModel], client: Client.Type) {
         self.modelProvider = LLMModelProvider(models: models)
-        self.promptProvider = promptProvider
     }
 
-    public func generateText(key: PromptProvider.Key, params: PromptProvider.Params) async throws -> String {
-        let prompt = try await promptProvider.prompt(key: key, params: params)
+    public func generate<P: LLMPrompt>(prompt: P) async throws -> P.Output {
+        let promptString = try await prompt.makePromptString()
         let model = await currentModel
-        let client = Client(prompt: prompt, model: model, stream: false)
+        let client = Client(prompt: promptString, model: model, stream: false)
         let stream = try await client.request()
 
         do {
             for try await item in stream {
                 try await client.shutdown()
-                return item
+                return prompt.transform(finalText: item)
             }
 
             throw LLMRunnerError.generateTextNothingReturned
@@ -32,19 +30,29 @@ final public class LLMRunner<PromptProvider: LLMPromptProvider, Client: LLMHTTPC
         }
     }
 
-    public func streamText(key: PromptProvider.Key, params: PromptProvider.Params) async -> AsyncThrowingStream<String, Error> {
+    public func stream<P: LLMPrompt>(prompt: P) async -> AsyncThrowingStream<P.Output, Error> {
         let model = await currentModel
-        let (stream, continuation) = AsyncThrowingStream<String, Error>.makeStream()
+        let (stream, continuation) = AsyncThrowingStream<P.Output, Error>.makeStream()
 
         do {
-            let prompt = try await promptProvider.prompt(key: key, params: params)
-            let client = Client(prompt: prompt, model: model, stream: true)
+            let promptString = try await prompt.makePromptString()
+            let client = Client(prompt: promptString, model: model, stream: true)
             let stream = try await client.request()
 
             Task {
                 do {
+                    var output = ""
+
                     for try await item in stream {
-                        continuation.yield(item)
+                        let (output, shouldStop) = prompt.transform(chunk: item, accumulatedString: &output)
+
+                        if let output {
+                            continuation.yield(output)
+                        }
+
+                        if shouldStop {
+                            break
+                        }
                     }
 
                     continuation.finish()

@@ -9,12 +9,21 @@ import Testing
         models: [
             SiliconFlow(apiKey: "sk-bfwsvwnbgyuetpjfycrmeavfvrmspihhkgrwpcofhtbqldje")
         ],
-        promptProvider: MyPromptProvider(),
         client: Client.self
     )
 
     // let string = try await runner.generateText(key: "", params: ["text": "Hello, World!"])
-    let stream = await runner.streamText(key: "", params: ["text": "Hello, World!"])
+    let prompt = LLMStaticTextPrompt(
+        key: "",
+        input: ["text": "Hello, World!"],
+        staticTemplate:
+            """
+            请将以下英文翻译成简体中文
+            英文：{{text}}
+            """
+    )
+
+    let stream = await runner.stream(prompt: prompt)
 
     var string = ""
 
@@ -86,18 +95,25 @@ struct Client: LLMHTTPClient {
     }
 }
 
-struct MyPromptProvider: LLMPromptProvider {
-    func validate(key: String, params: [String: String]) -> Bool {
-        true
-    }
-
-    typealias Key = String
-    typealias Params = [String: String]
-
-    func prompt(key: String, params: [String: String]) async throws -> String {
-        """
-        请将以下英文翻译成简体中文
-        英文：\(params["text"]!)
-        """
+extension Dictionary: LLMPromptInput where Key == String, Value == String {
+    public var inputDict: [String: String] {
+        self
     }
 }
+
+// struct MyPromptProvider: LLMPromptProvider {
+//     typealias Input = [String: String]
+
+//     func validate(key: String, input: [String: String]) -> Bool {
+//         true
+//     }
+
+//     typealias Key = String
+
+//     func prompt(key: String, input: [String: String]) async throws -> String {
+//         """
+//         请将以下英文翻译成简体中文
+//         英文：\(input["text"]!)
+//         """
+//     }
+// }
