@@ -12,8 +12,8 @@ public struct AICompletionRunner<Client: AIHTTPClient>: Sendable {
         self.modelProvider = AIModelProvider(models: models)
     }
 
-    public func generate<P: AILLMCompletion>(prompt: P) async throws -> P.Output {
-        let promptString = try await prompt.makePromptString()
+    public func generate<T: AILLMCompletion>(completion: T) async throws -> T.Output {
+        let promptString = try await completion.makePromptString()
         let model = await currentModel
         let client = Client(prompt: promptString, model: model, stream: false)
         let stream = try await client.request()
@@ -21,7 +21,7 @@ public struct AICompletionRunner<Client: AIHTTPClient>: Sendable {
         do {
             for try await string in stream {
                 try await client.shutdown()
-                return prompt.makeOutput(string: string)
+                return completion.makeOutput(string: string)
             }
 
             throw AIRunnerError.generateTextNothingReturned
@@ -31,12 +31,12 @@ public struct AICompletionRunner<Client: AIHTTPClient>: Sendable {
         }
     }
 
-    public func stream<P: AILLMCompletion>(prompt: P) async -> AsyncThrowingStream<P.Output, Error> {
+    public func stream<T: AILLMCompletion>(completion: T) async -> AsyncThrowingStream<T.Output, Error> {
         let model = await currentModel
-        let (stream, continuation) = AsyncThrowingStream<P.Output, Error>.makeStream()
+        let (stream, continuation) = AsyncThrowingStream<T.Output, Error>.makeStream()
 
         do {
-            let promptString = try await prompt.makePromptString()
+            let promptString = try await completion.makePromptString()
             let client = Client(prompt: promptString, model: model, stream: true)
             let stream = try await client.request()
 
@@ -45,7 +45,7 @@ public struct AICompletionRunner<Client: AIHTTPClient>: Sendable {
                     var accumulatedString = ""
 
                     for try await string in stream {
-                        let (output, shouldStop) = prompt.makeOutput(chunk: string, accumulatedString: &accumulatedString)
+                        let (output, shouldStop) = completion.makeOutput(chunk: string, accumulatedString: &accumulatedString)
 
                         if let output {
                             continuation.yield(output)

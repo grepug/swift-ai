@@ -14,7 +14,7 @@ import Testing
     )
 
     // let string = try await runner.generateText(key: "", params: ["text": "Hello, World!"])
-    let prompt = AIStaticTextCompletion(
+    let completion = AIStaticTextCompletion(
         key: "",
         input: ["text": "Hello, World!"],
         staticTemplate:
@@ -24,7 +24,7 @@ import Testing
             """
     )
 
-    let stream = await runner.stream(prompt: prompt)
+    let stream = await runner.stream(completion: completion)
 
     var string = ""
 
