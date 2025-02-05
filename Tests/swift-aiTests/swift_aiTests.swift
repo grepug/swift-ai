@@ -3,9 +3,10 @@ import Foundation
 import Testing
 
 @testable import SwiftAI
+@testable import SwiftAIServer
 
 @Test func example() async throws {
-    let runner = LLMRunner(
+    let runner = AICompletionRunner(
         models: [
             SiliconFlow(apiKey: "sk-bfwsvwnbgyuetpjfycrmeavfvrmspihhkgrwpcofhtbqldje")
         ],
@@ -13,7 +14,7 @@ import Testing
     )
 
     // let string = try await runner.generateText(key: "", params: ["text": "Hello, World!"])
-    let prompt = LLMStaticTextPrompt(
+    let prompt = AIStaticTextCompletion(
         key: "",
         input: ["text": "Hello, World!"],
         staticTemplate:
@@ -36,12 +37,12 @@ import Testing
     #expect(string.count > 0)
 }
 
-struct Client: LLMHTTPClient {
+struct Client: AIHTTPClient {
     let prompt: String
-    let model: any LLMModel
+    let model: any AIModel
     let stream: Bool
 
-    init(prompt: String, model: any SwiftAI.LLMModel, stream: Bool) {
+    init(prompt: String, model: any SwiftAI.AIModel, stream: Bool) {
         self.prompt = prompt
         self.model = model
         self.stream = stream
@@ -95,13 +96,7 @@ struct Client: LLMHTTPClient {
     }
 }
 
-extension Dictionary: LLMPromptInput where Key == String, Value == String {
-    public var inputDict: [String: String] {
-        self
-    }
-}
-
-// struct MyPromptProvider: LLMPromptProvider {
+// struct MyPromptProvider: AIPromptProvider {
 //     typealias Input = [String: String]
 
 //     func validate(key: String, input: [String: String]) -> Bool {

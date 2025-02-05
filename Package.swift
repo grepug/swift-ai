@@ -13,7 +13,11 @@ let package = Package(
         .library(
             name: "SwiftAI",
             targets: ["SwiftAI"]
-        )
+        ),
+        .library(
+            name: "SwiftAIServer",
+            targets: ["SwiftAIServer"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/grepug/event-source.git", branch: "master")
@@ -23,10 +27,25 @@ let package = Package(
             name: "SwiftAI",
             path: "Sources/Core"
         ),
+        .target(
+            name: "SwiftAIClient",
+            dependencies: [
+                "SwiftAI",
+                .product(name: "EventSource", package: "event-source"),
+            ],
+            path: "Sources/Client"
+        ),
+        .target(
+            name: "SwiftAIServer",
+            dependencies: ["SwiftAI"],
+            path: "Sources/Server"
+        ),
         .testTarget(
             name: "swift-aiTests",
             dependencies: [
                 "SwiftAI",
+                "SwiftAIClient",
+                "SwiftAIServer",
                 .product(name: "EventSource", package: "event-source"),
             ]
         ),

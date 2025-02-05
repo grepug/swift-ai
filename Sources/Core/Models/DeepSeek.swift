@@ -1,6 +1,6 @@
 import Foundation
 
-public struct DeepSeek: LLMModel {
+public struct DeepSeek: AIModel {
     public let name: String
     public let baseURL: URL
     public let apiKey: String
@@ -12,7 +12,7 @@ public struct DeepSeek: LLMModel {
     }
 }
 
-public struct SiliconFlow: LLMModel {
+public struct SiliconFlow: AIModel {
     public let name: String
     public let baseURL: URL
     public let apiKey: String

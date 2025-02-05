@@ -1,14 +1,15 @@
 import Foundation
+import SwiftAI
 
-actor LLMModelProvider: Sendable {
-    let models: [any LLMModel]
+actor AIModelProvider: Sendable {
+    let models: [any AIModel]
     var index: Int = 0
 
-    init(models: [any LLMModel]) {
+    init(models: [any AIModel]) {
         self.models = models
     }
 
-    func getModel() -> any LLMModel {
+    func getModel() -> any AIModel {
         models[index]
     }
 

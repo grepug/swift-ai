@@ -1,18 +1,19 @@
 import Foundation
+import SwiftAI
 
-public protocol LLMHTTPClient: Sendable {
+public protocol AIHTTPClient: Sendable {
     var prompt: String { get }
-    var model: any LLMModel { get }
+    var model: any AIModel { get }
     var stream: Bool { get }
 
-    init(prompt: String, model: any LLMModel, stream: Bool)
+    init(prompt: String, model: any AIModel, stream: Bool)
 
     func request() async throws -> AsyncThrowingStream<String, Error>
     func shutdown() async throws
 }
 
-extension LLMHTTPClient {
-    public var requestInfo: LLMHTTPClientRequestInfo {
+extension AIHTTPClient {
+    public var requestInfo: AIHTTPClientRequestInfo {
         .init(model: model, prompt: prompt, stream: stream)
     }
 
@@ -24,7 +25,7 @@ extension LLMHTTPClient {
             let lines = string.split(separator: "\n")
 
             return lines.map { line in
-                if let result = try? decoder.decode(LLMHTTPChunkedResponse.self, from: Data(line.utf8)),
+                if let result = try? decoder.decode(AIHTTPChunkedResponse.self, from: Data(line.utf8)),
                     !result.choices.isEmpty
                 {
                     return result.choices[0].delta.content ?? ""
@@ -33,7 +34,7 @@ extension LLMHTTPClient {
                 return String(line)
             }
         } else {
-            if let result = try? decoder.decode(LLMHTTPResponse.self, from: data), !result.choices.isEmpty {
+            if let result = try? decoder.decode(AIHTTPResponse.self, from: data), !result.choices.isEmpty {
                 return [result.choices[0].message.content]
             }
         }
@@ -52,8 +53,8 @@ extension LLMHTTPClient {
     func shutdown() async throws {}
 }
 
-public struct LLMHTTPClientRequestInfo {
-    let model: any LLMModel
+public struct AIHTTPClientRequestInfo {
+    let model: any AIModel
     let prompt: String
     let stream: Bool
 
@@ -94,7 +95,7 @@ public struct LLMHTTPClientRequestInfo {
     }
 }
 
-public struct LLMHTTPResponse: Decodable {
+public struct AIHTTPResponse: Decodable {
     public struct Choice: Decodable {
         public struct Message: Decodable {
             let role: String
@@ -121,7 +122,7 @@ public struct LLMHTTPResponse: Decodable {
     }
 }
 
-public struct LLMHTTPChunkedResponse: Decodable {
+public struct AIHTTPChunkedResponse: Decodable {
     public struct Choice: Decodable {
         public struct Delta: Decodable {
             let content: String?
