@@ -7,9 +7,11 @@ public enum AIRunnerError: Error {
 
 public struct AICompletionRunner<Client: AIHTTPClient>: Sendable {
     let modelProvider: AIModelProvider
+    let log: (@Sendable (String) -> Void)?
 
-    public init(models: [any AIModel], client: Client.Type) {
+    public init(models: [any AIModel], client: Client.Type, log: (@Sendable (String) -> Void)? = nil) {
         self.modelProvider = AIModelProvider(models: models)
+        self.log = log
     }
 
     public func generate<T: AILLMCompletion>(completion: T) async throws -> T.Output {
@@ -21,6 +23,7 @@ public struct AICompletionRunner<Client: AIHTTPClient>: Sendable {
         do {
             for try await string in stream {
                 try await client.shutdown()
+                log?(string)
                 return completion.makeOutput(string: string)
             }
 
@@ -56,6 +59,7 @@ public struct AICompletionRunner<Client: AIHTTPClient>: Sendable {
                         }
                     }
 
+                    log?(accumulatedString)
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
