@@ -20,17 +20,23 @@ public struct URLSessionClient {
         return request
     }
 
-    public func stream<T: AITask>(aiTask: T) -> AsyncThrowingStream<T.Output, Error> {
+    public func stream<T: AIStreamTask>(aiTask: T) -> AsyncThrowingStream<T.Output, Error> {
         let request = makeURLRequest(key: aiTask.key)
         let (newStream, continuation) = AsyncThrowingStream<T.Output, Error>.makeStream()
         let stream = EventSourceClient(request: request).stream
 
         Task {
             do {
+                var chunks: [T.StreamChunk] = []
+
                 let decoder = JSONDecoder()
                 for try await chunk in stream {
                     let data = chunk.data(using: .utf8) ?? Data()
-                    let output = try decoder.decode(T.Output.self, from: data)
+                    let streamChunk = try decoder.decode(T.StreamChunk.self, from: data)
+                    chunks.append(streamChunk)
+
+                    let output = aiTask.assembleOutput(chunks: chunks)
+
                     continuation.yield(output)
                 }
 

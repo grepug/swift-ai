@@ -1,11 +1,20 @@
 import Foundation
 import SwiftAI
 
-public enum AIRunnerError: Error {
+public enum AIClientError: Error {
     case generateTextNothingReturned
 }
 
-public struct AICompletionRunner<Client: AIHTTPClient>: Sendable {
+public protocol AICompletionClientKind: Sendable {
+    associatedtype Client: AIHTTPClient
+
+    init(models: [any AIModel], client: Client.Type, log: (@Sendable (String) -> Void)?)
+
+    func generate<T: AILLMCompletion>(completion: T) async throws -> T.Output
+    func stream<T: AIStreamCompletion>(completion: T) async -> AsyncThrowingStream<T.Output, Error>
+}
+
+public struct AICompletionClient<Client: AIHTTPClient>: Sendable {
     let modelProvider: AIModelProvider
     let log: (@Sendable (String) -> Void)?
 
@@ -27,14 +36,14 @@ public struct AICompletionRunner<Client: AIHTTPClient>: Sendable {
                 return completion.makeOutput(string: string)
             }
 
-            throw AIRunnerError.generateTextNothingReturned
+            throw AIClientError.generateTextNothingReturned
         } catch {
             try await client.shutdown()
             throw error
         }
     }
 
-    public func stream<T: AILLMCompletion>(completion: T) async -> AsyncThrowingStream<T.Output, Error> {
+    public func stream<T: AIStreamCompletion>(completion: T) async -> AsyncThrowingStream<T.Output, Error> {
         let model = await currentModel
         let (stream, continuation) = AsyncThrowingStream<T.Output, Error>.makeStream()
 
@@ -75,7 +84,7 @@ public struct AICompletionRunner<Client: AIHTTPClient>: Sendable {
     }
 }
 
-extension AICompletionRunner {
+extension AICompletionClient {
     fileprivate var currentModel: any AIModel {
         get async {
             await modelProvider.getModel()

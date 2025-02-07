@@ -3,6 +3,9 @@ public protocol AILLMCompletion: AITask {
     func promptTemplate() async throws -> String
 
     func makeOutput(string: String) -> Output
+}
+
+public protocol AIStreamCompletion: AILLMCompletion {
     func makeOutput(chunk: String, accumulatedString: inout String) -> (output: Output?, shouldStop: Bool)
 }
 

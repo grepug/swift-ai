@@ -1,4 +1,4 @@
-public struct AIStaticTextCompletion<Input: AITaskInput>: AILLMCompletion {
+public struct AIStaticTextCompletion<Input: AITaskInput>: AIStreamCompletion {
     public let key: String
     public let input: Input
     public let staticTemplate: String

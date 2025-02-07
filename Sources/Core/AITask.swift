@@ -27,6 +27,8 @@ extension AITaskInput {
 
 public typealias AITaskOutput = Codable & Sendable
 
+public struct VoidAITaskStreamChunk: AITaskOutput {}
+
 // the basic model for client to interact with the AI
 public protocol AITask: Sendable, Codable {
     associatedtype Input: AITaskInput
@@ -35,4 +37,10 @@ public protocol AITask: Sendable, Codable {
     // the key is to communicate with the server
     var key: String { get }
     var input: Input { get }
+}
+
+public protocol AIStreamTask: AITask {
+    associatedtype StreamChunk: AITaskOutput
+    // accumulate the chunk and return the output on the client
+    func assembleOutput(chunks: [StreamChunk]) -> Output
 }

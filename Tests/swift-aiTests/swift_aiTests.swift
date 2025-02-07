@@ -6,14 +6,14 @@ import Testing
 @testable import SwiftAIServer
 
 @Test func example() async throws {
-    let runner = AICompletionRunner(
+    let client = AICompletionClient(
         models: [
             SiliconFlow(apiKey: "sk-bfwsvwnbgyuetpjfycrmeavfvrmspihhkgrwpcofhtbqldje")
         ],
         client: Client.self
     )
 
-    // let string = try await runner.generateText(key: "", params: ["text": "Hello, World!"])
+    // let string = try await client.generateText(key: "", params: ["text": "Hello, World!"])
     let completion = AIStaticTextCompletion(
         key: "",
         input: ["text": "Hello, World!"],
@@ -24,7 +24,7 @@ import Testing
             """
     )
 
-    let stream = await runner.stream(completion: completion)
+    let stream = await client.stream(completion: completion)
 
     var string = ""
 
