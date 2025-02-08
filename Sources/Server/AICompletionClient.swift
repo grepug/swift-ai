@@ -14,7 +14,7 @@ public protocol AICompletionClientKind: Sendable {
     func stream<T: AIStreamCompletion>(completion: T) async -> AsyncThrowingStream<T.Output, Error>
 }
 
-public struct AICompletionClient<Client: AIHTTPClient>: Sendable {
+public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
     let modelProvider: AIModelProvider
     let log: (@Sendable (String) -> Void)?
 
