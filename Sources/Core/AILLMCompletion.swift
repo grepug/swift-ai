@@ -5,7 +5,7 @@ public protocol AILLMCompletion: AITask {
     func makeOutput(string: String) -> Output
 }
 
-public protocol AIStreamCompletion: AILLMCompletion {
+public protocol AIStreamCompletion: AILLMCompletion, AIStreamTask {
     func makeOutput(chunk: String, accumulatedString: inout String) -> (output: Output?, shouldStop: Bool)
 }
 

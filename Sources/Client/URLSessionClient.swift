@@ -11,17 +11,19 @@ public struct URLSessionClient {
         self.makeURL = makeURL
     }
 
-    func makeURLRequest(key: String) -> URLRequest {
-        let url = makeURL(key)
+    func makeURLRequest<T: AITask>(task: T) -> URLRequest {
+        let url = makeURL(task.key)
         var request = URLRequest(url: url)
 
         request.httpMethod = "POST"
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try! JSONEncoder().encode(task)
+
         return request
     }
 
     public func stream<T: AIStreamTask>(aiTask: T) -> AsyncThrowingStream<T.Output, Error> {
-        let request = makeURLRequest(key: aiTask.key)
+        let request = makeURLRequest(task: aiTask)
         let (newStream, continuation) = AsyncThrowingStream<T.Output, Error>.makeStream()
         let stream = EventSourceClient(request: request).stream
 
@@ -30,14 +32,19 @@ public struct URLSessionClient {
                 var chunks: [T.StreamChunk] = []
 
                 let decoder = JSONDecoder()
+
                 for try await chunk in stream {
                     let data = chunk.data(using: .utf8) ?? Data()
-                    let streamChunk = try decoder.decode(T.StreamChunk.self, from: data)
-                    chunks.append(streamChunk)
+                    let response = try decoder.decode(AIServerStreamResponseContent<T>.self, from: data)
+                    chunks.append(response.chunk)
 
                     let output = aiTask.assembleOutput(chunks: chunks)
 
                     continuation.yield(output)
+
+                    if response.finished {
+                        break
+                    }
                 }
 
                 continuation.finish()
@@ -50,9 +57,9 @@ public struct URLSessionClient {
     }
 
     public func request<T: AITask>(aiTask: T) async throws -> T.Output {
-        let request = makeURLRequest(key: aiTask.key)
+        let request = makeURLRequest(task: aiTask)
         let (data, _) = try await URLSession.shared.data(for: request)
         let decoder = JSONDecoder()
-        return try decoder.decode(T.Output.self, from: data)
+        return try decoder.decode(AIServerResponseContent<T>.self, from: data).output
     }
 }

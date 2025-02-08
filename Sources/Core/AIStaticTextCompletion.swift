@@ -3,6 +3,11 @@ public struct AIStaticTextCompletion<Input: AITaskInput>: AIStreamCompletion {
     public let input: Input
     public let staticTemplate: String
 
+    public static var kind: String {
+        "static_text"
+    }
+
+    public typealias StreamChunk = String
     public typealias Output = String
 
     public init(key: String, input: Input, staticTemplate: String) {
@@ -21,5 +26,13 @@ public struct AIStaticTextCompletion<Input: AITaskInput>: AIStreamCompletion {
 
     public func makeOutput(string: String) -> String {
         string
+    }
+
+    public func assembleOutput(chunks: [String]) -> String {
+        chunks.joined()
+    }
+
+    public init(input: Input) {
+        fatalError("This should not be called")
     }
 }
