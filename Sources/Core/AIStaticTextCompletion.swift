@@ -7,8 +7,11 @@ public struct AIStaticTextCompletion<Input: AITaskInput>: AIStreamCompletion {
         "static_text"
     }
 
-    public typealias StreamChunk = String
-    public typealias Output = String
+    public struct Output: AITaskOutput {
+        public let text: String
+    }
+
+    public typealias StreamChunk = Output
 
     public init(key: String, input: Input, staticTemplate: String) {
         self.key = key
@@ -20,16 +23,25 @@ public struct AIStaticTextCompletion<Input: AITaskInput>: AIStreamCompletion {
         staticTemplate
     }
 
-    public func makeOutput(chunk: String, accumulatedString: inout String) -> (output: String?, shouldStop: Bool) {
-        return (chunk, false)
+    public func makeOutput(chunk: String, accumulatedString: inout String) -> (output: Output?, shouldStop: Bool) {
+        accumulatedString += chunk
+        return (Output(text: chunk), false)
     }
 
-    public func makeOutput(string: String) -> String {
-        string
+    public func makeOutput(string: String) -> Output {
+        Output(text: string)
     }
 
-    public func assembleOutput(chunks: [String]) -> String {
-        chunks.joined()
+    public func assembleOutput(chunks: [StreamChunk]) -> Output {
+        Output(text: chunks.map(\.text).joined())
+    }
+
+    public var startSymbol: String? {
+        "^^"
+    }
+
+    public var endSymbol: String? {
+        "$$"
     }
 
     public init(input: Input) {

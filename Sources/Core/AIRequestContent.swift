@@ -1,10 +1,8 @@
 public struct AIClientRequestContent<T: AITask>: Codable, Sendable {
-    public let kind: String
     public let task: T
 
     public init(task: T) {
         self.task = task
-        self.kind = T.kind
     }
 }
 

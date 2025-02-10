@@ -1,8 +1,14 @@
+import Foundation
+
 // should be conformed by a concrect type on the server
 public protocol AILLMCompletion: AITask {
     func promptTemplate() async throws -> String
 
     func makeOutput(string: String) -> Output
+
+    // this is used for stream completion which indicates the start and end of the output
+    var startSymbol: String? { get }
+    var endSymbol: String? { get }
 }
 
 public protocol AIStreamCompletion: AILLMCompletion, AIStreamTask {
@@ -10,12 +16,22 @@ public protocol AIStreamCompletion: AILLMCompletion, AIStreamTask {
 }
 
 extension AILLMCompletion {
+    public var startSymbol: String? {
+        nil
+    }
+
+    public var endSymbol: String? {
+        nil
+    }
+
     public func makePromptString() async throws -> String {
         var prompt = try await promptTemplate()
 
         for (key, value) in input.normalized {
             prompt = prompt.replacingOccurrences(of: "{{\(key)}}", with: value)
         }
+
+        print("prompt: \(prompt)")
 
         // validate if there is no {{}}
         if prompt.contains("{{") {
@@ -26,6 +42,13 @@ extension AILLMCompletion {
     }
 }
 
-public enum AILLMCompletionError: Error {
+public enum AILLMCompletionError: LocalizedError {
     case invalidPromptParams
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidPromptParams:
+            return "Invalid prompt parameters"
+        }
+    }
 }

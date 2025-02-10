@@ -25,13 +25,10 @@ import Testing
     )
 
     let stream = await client.stream(completion: completion)
-
     var string = ""
 
     for try await item in stream {
-        string += item
-        print("Received: \(string)")
-
+        string += item.text
     }
 
     #expect(string.count > 0)

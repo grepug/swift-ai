@@ -52,11 +52,27 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
             let client = Client(prompt: promptString, model: model, stream: true)
             let stream = try await client.request()
 
+            var hasMetStartSymbol = completion.startSymbol == nil
+
             Task {
                 do {
                     var accumulatedString = ""
 
                     for try await string in stream {
+                        var string = string
+
+                        if !hasMetStartSymbol, let startSymbol = completion.startSymbol {
+                            hasMetStartSymbol = string.contains(startSymbol)
+                            string = string.replacingOccurrences(of: completion.startSymbol ?? "", with: "")
+                        }
+
+                        if let endSymbol = completion.endSymbol, hasMetStartSymbol {
+                            if string.contains(endSymbol) {
+                                string = string.replacingOccurrences(of: endSymbol, with: "")
+                                break
+                            }
+                        }
+
                         let (output, shouldStop) = completion.makeOutput(chunk: string, accumulatedString: &accumulatedString)
 
                         if let output {
