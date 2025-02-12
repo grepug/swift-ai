@@ -5,26 +5,36 @@ public enum AIClientError: Error {
     case generateTextNothingReturned
 }
 
+public protocol AIPromptTemplateProvider: Sendable {
+    func promptTemplate(forKey key: String) async throws -> String
+
+    init()
+}
+
 public protocol AICompletionClientKind: Sendable {
     associatedtype Client: AIHTTPClient
+    associatedtype PromptTemplateProvider: AIPromptTemplateProvider
 
-    init(models: [any AIModel], client: Client.Type, log: (@Sendable (String) -> Void)?)
+    init(models: [any AIModel], client: Client.Type, promptTemplateProvider: PromptTemplateProvider, log: (@Sendable (String) -> Void)?)
 
     func generate<T: AILLMCompletion>(completion: T) async throws -> T.Output
     func stream<T: AIStreamCompletion>(completion: T) async -> AsyncThrowingStream<T.Output, Error>
 }
 
-public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
+public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: AIPromptTemplateProvider>: AICompletionClientKind {
     let modelProvider: AIModelProvider
+    let promptTemplateProvider: PromptTemplateProvider
     let log: (@Sendable (String) -> Void)?
 
-    public init(models: [any AIModel], client: Client.Type, log: (@Sendable (String) -> Void)? = nil) {
+    public init(models: [any AIModel], client: Client.Type, promptTemplateProvider: PromptTemplateProvider, log: (@Sendable (String) -> Void)? = nil) {
         self.modelProvider = AIModelProvider(models: models)
+        self.promptTemplateProvider = promptTemplateProvider
         self.log = log
     }
 
     public func generate<T: AILLMCompletion>(completion: T) async throws -> T.Output {
-        let promptString = try await completion.makePromptString()
+        let template = try await promptTemplateProvider.promptTemplate(forKey: completion.key)
+        let promptString = try await completion.makePromptString(template: template)
         let model = await currentModel
         let client = Client(prompt: promptString, model: model, stream: false)
         let stream = try await client.request()
@@ -48,7 +58,8 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
         let (stream, continuation) = AsyncThrowingStream<T.Output, Error>.makeStream()
 
         do {
-            let promptString = try await completion.makePromptString()
+            let template = try await promptTemplateProvider.promptTemplate(forKey: completion.key)
+            let promptString = try await completion.makePromptString(template: template)
             let client = Client(prompt: promptString, model: model, stream: true)
             let stream = try await client.request()
 

@@ -2,8 +2,6 @@ import Foundation
 
 // should be conformed by a concrect type on the server
 public protocol AILLMCompletion: AITask {
-    func promptTemplate() async throws -> String
-
     func makeOutput(string: String) -> Output
 
     // this is used for stream completion which indicates the start and end of the output
@@ -24,8 +22,8 @@ extension AILLMCompletion {
         nil
     }
 
-    public func makePromptString() async throws -> String {
-        var prompt = try await promptTemplate()
+    public func makePromptString(template: String) async throws -> String {
+        var prompt = template
 
         for (key, value) in input.normalized {
             prompt = prompt.replacingOccurrences(of: "{{\(key)}}", with: value)
