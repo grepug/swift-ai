@@ -6,10 +6,10 @@ public struct AITextStreamCompletionOutput: AITaskOutput {
     }
 }
 
-public protocol AITextStreamCompletion: AIStreamTask where Output == AITextStreamCompletionOutput, StreamChunk == AITextStreamCompletionOutput {
+public protocol AITextStreamCompletion: AIStreamTask {
 }
 
-extension AITextStreamCompletion {
+extension AITextStreamCompletion where Output == AITextStreamCompletionOutput, StreamChunk == AITextStreamCompletionOutput {
     public func assembleOutput(chunks: [StreamChunk]) -> Output {
         Output(text: chunks.map(\.text).joined())
     }
