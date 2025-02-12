@@ -49,9 +49,11 @@ extension AITask {
 public struct VoidStreamChunk: AITaskOutput {}
 
 public protocol AIStreamTask: AITask {
-    associatedtype StreamChunk: AITaskOutput = VoidStreamChunk
+    associatedtype StreamChunk: AITaskOutput = Output
+
+    func initialOutput() -> Output
     // accumulate the chunk and return the output on the client
-    func assembleOutput(chunks: [StreamChunk]) -> Output
+    func reduce(partialOutput: inout Output, chunk: StreamChunk)
 }
 
 extension AIStreamTask where StreamChunk == VoidStreamChunk {

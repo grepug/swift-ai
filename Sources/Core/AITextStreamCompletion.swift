@@ -1,5 +1,5 @@
 public struct AITextStreamCompletionOutput: AITaskOutput {
-    public let text: String
+    public var text: String
 
     public init(text: String) {
         self.text = text
@@ -10,8 +10,12 @@ public protocol AITextStreamCompletion: AIStreamCompletion {
 }
 
 extension AITextStreamCompletion where Output == AITextStreamCompletionOutput, StreamChunk == AITextStreamCompletionOutput {
-    public func assembleOutput(chunks: [StreamChunk]) -> Output {
-        Output(text: chunks.map(\.text).joined())
+    public func reduce(partialOutput: inout Output, chunk: StreamChunk) {
+        partialOutput.text += chunk.text
+    }
+
+    public func initialOutput() -> Output {
+        Output(text: "")
     }
 
     public func makeOutput(chunk: String, accumulatedString: inout String) -> (output: Output?, shouldStop: Bool) {

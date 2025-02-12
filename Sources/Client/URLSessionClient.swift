@@ -29,18 +29,16 @@ public struct URLSessionClient {
 
         Task {
             do {
-                var chunks: [T.StreamChunk] = []
+                var partialOutput = aiTask.initialOutput()
 
                 let decoder = JSONDecoder()
 
                 for try await chunk in stream {
                     let data = chunk.data(using: .utf8) ?? Data()
                     let response = try decoder.decode(AIServerStreamResponseContent<T>.self, from: data)
-                    chunks.append(response.chunk)
+                    aiTask.reduce(partialOutput: &partialOutput, chunk: response.chunk)
 
-                    let output = aiTask.assembleOutput(chunks: chunks)
-
-                    continuation.yield(output)
+                    continuation.yield(partialOutput)
 
                     if response.finished {
                         break
