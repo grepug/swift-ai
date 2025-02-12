@@ -41,14 +41,12 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
 
         do {
             for try await string in stream {
-                try await client.shutdown()
                 log?(string)
                 return completion.makeOutput(string: string)
             }
 
             throw AIClientError.generateTextNothingReturned
         } catch {
-            try await client.shutdown()
             throw error
         }
     }
@@ -100,8 +98,6 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
                 } catch {
                     continuation.finish(throwing: error)
                 }
-
-                try? await client.shutdown()
             }
         } catch {
             continuation.finish(throwing: error)

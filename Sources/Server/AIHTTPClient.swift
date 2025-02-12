@@ -9,7 +9,6 @@ public protocol AIHTTPClient: Sendable {
     init(prompt: String, model: any AIModel, stream: Bool)
 
     func request() async throws -> AsyncThrowingStream<String, Error>
-    func shutdown() async throws
 }
 
 extension AIHTTPClient {
@@ -49,8 +48,6 @@ extension AIHTTPClient {
 
         return decodeResponse(data: data)
     }
-
-    func shutdown() async throws {}
 }
 
 public struct AIHTTPClientRequestInfo {
