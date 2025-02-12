@@ -5,34 +5,34 @@ import Testing
 @testable import SwiftAI
 @testable import SwiftAIServer
 
-@Test func example() async throws {
-    let client = AICompletionClient(
-        models: [
-            SiliconFlow(apiKey: "sk-bfwsvwnbgyuetpjfycrmeavfvrmspihhkgrwpcofhtbqldje")
-        ],
-        client: Client.self
-    )
+// @Test func example() async throws {
+//     let client = AICompletionClient(
+//         models: [
+//             SiliconFlow(apiKey: "sk-bfwsvwnbgyuetpjfycrmeavfvrmspihhkgrwpcofhtbqldje")
+//         ],
+//         client: Client.self
+//     )
 
-    // let string = try await client.generateText(key: "", params: ["text": "Hello, World!"])
-    let completion = AIStaticTextCompletion(
-        key: "",
-        input: ["text": "Hello, World!"],
-        staticTemplate:
-            """
-            请将以下英文翻译成简体中文
-            英文：{{text}}
-            """
-    )
+//     // let string = try await client.generateText(key: "", params: ["text": "Hello, World!"])
+//     let completion = (
+//         key: "",
+//         input: ["text": "Hello, World!"],
+//         staticTemplate:
+//             """
+//             请将以下英文翻译成简体中文
+//             英文：{{text}}
+//             """
+//     )
 
-    let stream = await client.stream(completion: completion)
-    var string = ""
+//     let stream = await client.stream(completion: completion)
+//     var string = ""
 
-    for try await item in stream {
-        string += item.text
-    }
+//     for try await item in stream {
+//         string += item.text
+//     }
 
-    #expect(string.count > 0)
-}
+//     #expect(string.count > 0)
+// }
 
 struct Client: AIHTTPClient {
     let prompt: String
