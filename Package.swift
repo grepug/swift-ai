@@ -19,6 +19,10 @@ let package = Package(
             name: "SwiftAIServer",
             targets: ["SwiftAIServer"]
         ),
+        .library(
+            name: "SwiftAIClient",
+            targets: ["SwiftAIClient"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/grepug/event-source.git", branch: "master")
