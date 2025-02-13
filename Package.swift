@@ -42,7 +42,10 @@ let package = Package(
         ),
         .target(
             name: "SwiftAIServer",
-            dependencies: ["SwiftAI"],
+            dependencies: [
+                "SwiftAI",
+                .product(name: "EventSource", package: "event-source"),
+            ],
             path: "Sources/Server"
         ),
         .testTarget(
