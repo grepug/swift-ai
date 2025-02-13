@@ -6,21 +6,19 @@ public struct AIClientRequestContent<T: AITask>: Codable, Sendable {
     }
 }
 
-public struct AIServerResponseContent<T: AITask>: Codable, Sendable {
-    public let output: T.Output
-    public let finished: Bool
+public struct AIServerResponseContent<T: AITaskOutput>: Codable, Sendable {
+    public let output: T
 
-    public init(output: T.Output, finished: Bool) {
+    public init(output: T) {
         self.output = output
-        self.finished = finished
     }
 }
 
-public struct AIServerStreamResponseContent<T: AIStreamTask>: Codable, Sendable {
-    public let chunk: T.StreamChunk
+public struct AIServerStreamResponseContent<T: AITaskOutput>: Codable, Sendable {
+    public let chunk: T
     public let finished: Bool
 
-    public init(chunk: T.StreamChunk, finished: Bool) {
+    public init(chunk: T, finished: Bool) {
         self.chunk = chunk
         self.finished = finished
     }

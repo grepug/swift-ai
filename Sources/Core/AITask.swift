@@ -25,7 +25,7 @@ extension AITaskInput {
     }
 }
 
-public typealias AITaskOutput = Codable & Sendable
+public typealias AITaskOutput = Codable & Sendable & Hashable
 
 // the basic model for client to interact with the AI
 public protocol AITask: Sendable, Codable {

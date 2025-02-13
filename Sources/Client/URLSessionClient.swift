@@ -17,7 +17,7 @@ public struct URLSessionClient {
 
         request.httpMethod = "POST"
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        request.httpBody = try! JSONEncoder().encode(task)
+        request.httpBody = try! JSONEncoder().encode(AIClientRequestContent(task: task))
 
         return request
     }
@@ -35,7 +35,8 @@ public struct URLSessionClient {
 
                 for try await chunk in stream {
                     let data = chunk.data(using: .utf8) ?? Data()
-                    let response = try decoder.decode(AIServerStreamResponseContent<T>.self, from: data)
+                    let response = try decoder.decode(AIServerStreamResponseContent<T.StreamChunk>.self, from: data)
+
                     aiTask.reduce(partialOutput: &partialOutput, chunk: response.chunk)
 
                     continuation.yield(partialOutput)
@@ -58,6 +59,6 @@ public struct URLSessionClient {
         let request = makeURLRequest(task: aiTask)
         let (data, _) = try await URLSession.shared.data(for: request)
         let decoder = JSONDecoder()
-        return try decoder.decode(AIServerResponseContent<T>.self, from: data).output
+        return try decoder.decode(AIServerResponseContent<T.Output>.self, from: data).output
     }
 }
