@@ -68,25 +68,27 @@ public struct AIHTTPClientRequestInfo {
         ]
     }
 
-    public var body: Data {
-        let json: [String: Any] = [
-            "model": model.name,
-            "messages": [
-                [
-                    "role": "user",
-                    "content": prompt,
-                ]
-            ],
-            // "max_tokens": 60,
-            // "temperature": 0.5,
-            // "top_p": 1.0,
-            // "frequency_penalty": 0.0,
-            // "presence_penalty": 0.0,
-            // "stop": ["\n"],
-            "stream": stream,
-        ]
+    struct Body: Encodable {
+        let model: String
+        let messages: [[String: String]]
+        let stream: Bool
 
-        let data = try! JSONSerialization.data(withJSONObject: json)
+        // let max_tokens: Int = 60
+        // let temperature: Double = 0.5
+        // let top_p: Double = 1.0
+        // let frequency_penalty: Double = 0.0
+        // let presence_penalty: Double = 0.0
+        // let stop: [String] = ["\n"]
+    }
+
+    public var body: Data {
+        let body = Body(
+            model: model.name,
+            messages: [["role": "user", "content": prompt]],
+            stream: stream
+        )
+
+        let data = try! JSONEncoder().encode(body)
 
         return data
     }
