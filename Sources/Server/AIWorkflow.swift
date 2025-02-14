@@ -9,8 +9,13 @@ public protocol AIWorkflow: AITask {
 }
 
 public struct AIWorkflowEnvironment {
-    var client: any AICompletionClientKind
-    var logger: Logger
+    public let client: any AICompletionClientKind
+    public let logger: Logger
+
+    public init(client: any AICompletionClientKind, logger: Logger) {
+        self.client = client
+        self.logger = logger
+    }
 }
 
 public protocol AIStreamWorkflow: AIStreamTask {
