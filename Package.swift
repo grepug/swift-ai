@@ -46,6 +46,7 @@ let package = Package(
             dependencies: [
                 "SwiftAI",
                 .product(name: "EventSource", package: "event-source"),
+                .product(name: "Logging", package: "swift-log"),
             ],
             path: "Sources/Server"
         ),
