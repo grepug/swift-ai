@@ -29,8 +29,6 @@ extension AILLMCompletion {
             prompt = prompt.replacingOccurrences(of: "{{\(key)}}", with: value)
         }
 
-        print("prompt: \(prompt)")
-
         // validate if there is no {{}}
         if prompt.contains("{{") {
             throw AILLMCompletionError.invalidPromptParams
