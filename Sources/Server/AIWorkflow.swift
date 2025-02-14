@@ -8,7 +8,7 @@ public protocol AIWorkflow: AITask {
     func makeOutput(environment: AIWorkflowEnvironment, tools: Tools) async throws -> Output
 }
 
-public struct AIWorkflowEnvironment {
+public struct AIWorkflowEnvironment: Sendable {
     public let client: any AICompletionClientKind
     public let logger: Logger
 
