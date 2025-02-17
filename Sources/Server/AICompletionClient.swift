@@ -34,7 +34,22 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
 
         do {
             for try await string in stream {
+                var string = string
+
+                if let startSymbol = completion.startSymbol {
+                    // remove anything before the start symbol(included)
+                    let escapedStartSymbol = NSRegularExpression.escapedPattern(for: startSymbol)
+                    string = string.replacingOccurrences(of: ".*\(escapedStartSymbol)", with: "", options: .regularExpression)
+                }
+
+                if let endSymbol = completion.endSymbol {
+                    // remove anything after the end symbol(included)
+                    let escapedEndSymbol = NSRegularExpression.escapedPattern(for: endSymbol)
+                    string = string.replacingOccurrences(of: "\(escapedEndSymbol).*", with: "", options: .regularExpression)
+                }
+
                 logger?.info("ai llm completion generate", metadata: ["string": "\(string)"])
+
                 return completion.makeOutput(string: string)
             }
         } catch {
