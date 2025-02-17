@@ -4,6 +4,8 @@ import Foundation
 public protocol AILLMCompletion: AITask {
     func makeOutput(string: String) -> Output
 
+    var preferredModel: (any AIModel)? { get }
+
     // this is used for stream completion which indicates the start and end of the output
     var startSymbol: String? { get }
     var endSymbol: String? { get }
@@ -22,7 +24,11 @@ extension AILLMCompletion {
         nil
     }
 
-    public func makePromptString(template: String) async throws -> String {
+    public var preferredModel: (any AIModel)? {
+        nil
+    }
+
+    public func makePromptString(template: String) async throws(AILLMCompletionError) -> String {
         var prompt = template
 
         for (key, value) in input.normalized {

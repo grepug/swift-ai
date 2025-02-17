@@ -8,7 +8,7 @@ public protocol AIHTTPClient: Sendable {
 
     init(prompt: String, model: any AIModel, stream: Bool)
 
-    func request() async throws -> AsyncThrowingStream<String, Error>
+    func request() async throws(AIHTTPClientError) -> AsyncThrowingStream<String, any Error>
 }
 
 extension AIHTTPClient {

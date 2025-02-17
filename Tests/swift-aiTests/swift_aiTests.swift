@@ -54,7 +54,7 @@ struct Client: AIHTTPClient {
         return request
     }
 
-    func request() async throws -> AsyncThrowingStream<String, any Error> {
+    func request() async throws(AIHTTPClientError) -> AsyncThrowingStream<String, any Error> {
         let (newStream, continuation) = AsyncThrowingStream<String, any Error>.makeStream()
 
         if stream {

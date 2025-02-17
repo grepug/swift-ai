@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import SwiftAI
 
 actor AIModelProvider: Sendable {
@@ -9,8 +10,21 @@ actor AIModelProvider: Sendable {
         self.models = models
     }
 
-    func getModel() -> any AIModel {
-        models[index]
+    struct GetModelResult {
+        let model: any AIModel
+        let usingPreferred: Bool
+    }
+
+    func getModel(preferredModel model: (any AIModel)? = nil) -> GetModelResult {
+        if let model {
+            return GetModelResult(
+                model: model,
+                usingPreferred: model.name != models[index].name
+            )
+        }
+
+        let model = models[index]
+        return GetModelResult(model: model, usingPreferred: false)
     }
 
     func moveToNextModel() {

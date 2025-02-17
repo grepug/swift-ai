@@ -14,7 +14,7 @@
             self.stream = stream
         }
 
-        public func request() async throws -> AsyncThrowingStream<String, any Error> {
+        public func request() async throws(AIHTTPClientError) -> AsyncThrowingStream<String, any Error> {
             var urlRequest = URLRequest(url: requestInfo.endpoint)
             urlRequest.httpMethod = "POST"
             urlRequest.httpBody = requestInfo.body
@@ -39,19 +39,37 @@
                             continuation.finish()
                         }
                     } catch {
-                        continuation.finish(throwing: error)
+                        continuation.finish(throwing: AIHTTPClientError(error: error))
                     }
                 }
             } else {
+                let data: Data
+                let response: HTTPURLResponse
+
                 do {
-                    let (data, _) = try await URLSession.shared.data(for: urlRequest)
-                    let strings = decodeResponse(data: data)
-                    if let string = strings.first {
-                        continuation.yield(string)
+                    let result = try await URLSession.shared.data(for: urlRequest)
+
+                    data = result.0
+                    response = result.1 as! HTTPURLResponse
+
+                    if String(response.statusCode).first != "2" {
+                        continuation.finish(
+                            throwing: AIHTTPClientError(
+                                statusCode: response.statusCode,
+                                data: data
+                            )
+                        )
+                    } else {
+                        let strings = decodeResponse(data: data)
+
+                        if let string = strings.first {
+                            continuation.yield(string)
+                        }
+
+                        continuation.finish()
                     }
-                    continuation.finish()
                 } catch {
-                    continuation.finish(throwing: error)
+                    continuation.finish(throwing: AIHTTPClientError(error: error))
                 }
             }
 

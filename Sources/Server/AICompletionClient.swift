@@ -1,12 +1,9 @@
 import Foundation
+import Logging
 import SwiftAI
 
-public enum AIClientError: Error {
-    case generateTextNothingReturned
-}
-
 public protocol AIPromptTemplateProvider: Sendable {
-    func promptTemplate(forKey key: String) async throws -> String
+    func promptTemplate(forKey key: String) async throws(AIPromptTemplateProviderError) -> String
 
     init()
 }
@@ -15,102 +12,126 @@ public protocol AICompletionClientKind: Sendable {
     associatedtype Client: AIHTTPClient
     associatedtype PromptTemplateProvider: AIPromptTemplateProvider
 
-    init(models: [any AIModel], client: Client.Type, promptTemplateProvider: PromptTemplateProvider, log: (@Sendable (String) -> Void)?)
+    init(models: [any AIModel], client: Client.Type, promptTemplateProvider: PromptTemplateProvider, logger: Logger?)
 
-    func generate<T: AILLMCompletion>(completion: T) async throws -> T.Output
-    func stream<T: AIStreamCompletion>(completion: T) async -> AsyncThrowingStream<T.Output, Error>
+    func generate<T: AILLMCompletion>(completion: T) async throws(AIClientError) -> T.Output
+    func stream<T: AIStreamCompletion>(completion: T) async throws(AIClientError) -> AsyncThrowingStream<T.Output, Error>
 }
 
 public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: AIPromptTemplateProvider>: AICompletionClientKind {
     let modelProvider: AIModelProvider
     let promptTemplateProvider: PromptTemplateProvider
-    let log: (@Sendable (String) -> Void)?
+    let logger: Logger?
 
-    public init(models: [any AIModel], client: Client.Type, promptTemplateProvider: PromptTemplateProvider, log: (@Sendable (String) -> Void)? = nil) {
+    public init(models: [any AIModel], client: Client.Type, promptTemplateProvider: PromptTemplateProvider, logger: Logger? = nil) {
         self.modelProvider = AIModelProvider(models: models)
         self.promptTemplateProvider = promptTemplateProvider
-        self.log = log
+        self.logger = logger
     }
 
-    public func generate<T: AILLMCompletion>(completion: T) async throws -> T.Output {
-        let template = try await promptTemplateProvider.promptTemplate(forKey: completion.key)
-        let promptString = try await completion.makePromptString(template: template)
-        let model = await currentModel
-        let client = Client(prompt: promptString, model: model, stream: false)
-        let stream = try await client.request()
+    public func generate<T: AILLMCompletion>(completion: T) async throws(AIClientError) -> T.Output {
+        let stream = try await makeRequestStream(completion: completion)
 
         do {
             for try await string in stream {
-                log?(string)
+                logger?.info("ai llm completion generate", metadata: ["string": "\(string)"])
                 return completion.makeOutput(string: string)
             }
-
-            throw AIClientError.generateTextNothingReturned
         } catch {
-            throw error
+            throw .streamError(error)
         }
+
+        throw .generateTextNothingReturned
     }
 
-    public func stream<T: AIStreamCompletion>(completion: T) async -> AsyncThrowingStream<T.Output, Error> {
-        let model = await currentModel
-        let (stream, continuation) = AsyncThrowingStream<T.Output, Error>.makeStream()
+    public func stream<T: AIStreamCompletion>(completion: T) async throws(AIClientError) -> AsyncThrowingStream<T.Output, Error> {
+        let (newStream, continuation) = AsyncThrowingStream<T.Output, Error>.makeStream()
+        let stream = try await makeRequestStream(completion: completion)
 
-        do {
-            let template = try await promptTemplateProvider.promptTemplate(forKey: completion.key)
-            let promptString = try await completion.makePromptString(template: template)
-            let client = Client(prompt: promptString, model: model, stream: true)
-            let stream = try await client.request()
+        Task {
+            do {
+                var hasMetStartSymbol = completion.startSymbol == nil
+                var accumulatedString = ""
 
-            var hasMetStartSymbol = completion.startSymbol == nil
+                for try await string in stream {
+                    var string = string
 
-            Task {
-                do {
-                    var accumulatedString = ""
+                    if !hasMetStartSymbol, let startSymbol = completion.startSymbol {
+                        hasMetStartSymbol = string.contains(startSymbol)
+                        string = string.replacingOccurrences(of: completion.startSymbol ?? "", with: "")
+                    }
 
-                    for try await string in stream {
-                        var string = string
-
-                        if !hasMetStartSymbol, let startSymbol = completion.startSymbol {
-                            hasMetStartSymbol = string.contains(startSymbol)
-                            string = string.replacingOccurrences(of: completion.startSymbol ?? "", with: "")
-                        }
-
-                        if let endSymbol = completion.endSymbol, hasMetStartSymbol {
-                            if string.contains(endSymbol) {
-                                string = string.replacingOccurrences(of: endSymbol, with: "")
-                                break
-                            }
-                        }
-
-                        let (output, shouldStop) = completion.makeOutput(chunk: string, accumulatedString: &accumulatedString)
-
-                        if let output {
-                            continuation.yield(output)
-                        }
-
-                        if shouldStop {
+                    if let endSymbol = completion.endSymbol, hasMetStartSymbol {
+                        if string.contains(endSymbol) {
+                            string = string.replacingOccurrences(of: endSymbol, with: "")
                             break
                         }
                     }
 
-                    log?(accumulatedString)
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
+                    let (output, shouldStop) = completion.makeOutput(chunk: string, accumulatedString: &accumulatedString)
+
+                    if let output {
+                        continuation.yield(output)
+                    }
+
+                    if shouldStop {
+                        break
+                    }
                 }
+
+                logger?.info("ai llm completion stream", metadata: ["string": "\(accumulatedString)"])
+
+                continuation.finish()
+            } catch {
+                assert(error is AIHTTPClientError)
+
+                continuation.finish(throwing: error)
             }
-        } catch {
-            continuation.finish(throwing: error)
         }
 
-        return stream
+        return newStream
     }
 }
 
 extension AICompletionClient {
-    fileprivate var currentModel: any AIModel {
-        get async {
-            await modelProvider.getModel()
+    private func getModel<T: AILLMCompletion>(completion: T) async -> any AIModel {
+        let result = await modelProvider.getModel(preferredModel: completion.preferredModel)
+
+        if result.usingPreferred {
+            logger?.info(
+                "using preferred model",
+                metadata: [
+                    "model": "\(result.model.name)"
+                ]
+            )
+        }
+
+        return result.model
+    }
+
+    private func makeRequestStream<T: AILLMCompletion>(completion: T) async throws(AIClientError) -> AsyncThrowingStream<String, any Error> {
+        let template: String
+        let promptString: String
+
+        do {
+            template = try await promptTemplateProvider.promptTemplate(forKey: completion.key)
+        } catch {
+            throw .promptTemplateError(error)
+        }
+
+        do {
+            promptString = try await completion.makePromptString(template: template)
+        } catch {
+            throw .makingPromptError(error)
+        }
+
+        let model = await getModel(completion: completion)
+        let client = Client(prompt: promptString, model: model, stream: false)
+
+        do {
+            return try await client.request()
+        } catch {
+            throw .requestError(error)
         }
     }
 }
