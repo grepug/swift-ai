@@ -30,7 +30,7 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
     }
 
     public func generate<T: AILLMCompletion>(completion: T) async throws(AIClientError) -> T.Output {
-        let stream = try await makeRequestStream(completion: completion)
+        let stream = try await makeRequestStream(completion: completion, stream: false)
 
         do {
             for try await string in stream {
@@ -61,7 +61,7 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
 
     public func stream<T: AIStreamCompletion>(completion: T) async throws(AIClientError) -> AsyncThrowingStream<T.Output, Error> {
         let (newStream, continuation) = AsyncThrowingStream<T.Output, Error>.makeStream()
-        let stream = try await makeRequestStream(completion: completion)
+        let stream = try await makeRequestStream(completion: completion, stream: true)
 
         Task {
             do {
@@ -124,7 +124,7 @@ extension AICompletionClient {
         return result.model
     }
 
-    private func makeRequestStream<T: AILLMCompletion>(completion: T) async throws(AIClientError) -> AsyncThrowingStream<String, any Error> {
+    private func makeRequestStream<T: AILLMCompletion>(completion: T, stream: Bool) async throws(AIClientError) -> AsyncThrowingStream<String, any Error> {
         let template: String
         let promptString: String
 
@@ -141,7 +141,7 @@ extension AICompletionClient {
         }
 
         let model = await getModel(completion: completion)
-        let client = Client(prompt: promptString, model: model, stream: false)
+        let client = Client(prompt: promptString, model: model, stream: stream)
 
         do {
             return try await client.request()
