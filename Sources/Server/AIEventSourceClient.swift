@@ -35,9 +35,9 @@
                             for string in strings {
                                 continuation.yield(string)
                             }
-
-                            continuation.finish()
                         }
+                        
+                        continuation.finish()
                     } catch {
                         continuation.finish(throwing: AIHTTPClientError(error: error))
                     }

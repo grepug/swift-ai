@@ -17,10 +17,12 @@ actor AIModelProvider: Sendable {
 
     func getModel(preferredModel model: (any AIModel)? = nil) -> GetModelResult {
         if let model {
-            return GetModelResult(
-                model: model,
-                usingPreferred: model.name != models[index].name
-            )
+            if let preferredModel = models.first(where: { $0.name == model.name }) {
+                return GetModelResult(
+                    model: preferredModel,
+                    usingPreferred: true
+                )
+            }
         }
 
         let model = models[index]
