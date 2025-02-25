@@ -26,17 +26,23 @@ extension AIHTTPClient {
             return lines.map { line in
                 do {
                     let result = try decoder.decode(AIHTTPChunkedResponse.self, from: Data(line.utf8))
-                    
+
+                    // if let reason = result.choices.first?.finish_reason {
+                    //     print("finish reason", reason)
+                    // }
+
                     if !result.choices.isEmpty {
                         return result.choices[0].delta.content ?? ""
                     }
 
+                    assertionFailure()
+
                     return ""
                 } catch {
                     print("result error", error)
-                    
+
                     assertionFailure()
-                    
+
                     return String(line)
                 }
             }
@@ -114,8 +120,8 @@ public struct AIHTTPResponse: Decodable {
         let finish_reason: String
     }
 
-    let id: String
-    let object: String
+    let id: String?
+    let object: String?
     let created: Int
     let model: String
     let choices: [Choice]
@@ -153,8 +159,8 @@ public struct AIHTTPChunkedResponse: Decodable {
         let content_filter_results: ContentFilterResults?
     }
 
-    let id: String
-    let object: String
+    let id: String?
+    let object: String?
     let created: Int
     let model: String
     let choices: [Choice]

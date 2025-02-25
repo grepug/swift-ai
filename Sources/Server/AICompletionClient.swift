@@ -71,6 +71,8 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
                 var accumulatedString = ""
                 var hasYield = false
                 var isStopped = false
+                var isBroken = false
+                var latestOutput: T.Output?
 
                 for try await string in stream {
                     var string = string
@@ -83,11 +85,14 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
                     if let endSymbol = completion.endSymbol, hasMetStartSymbol {
                         if string.contains(endSymbol) {
                             string = string.replacingOccurrences(of: endSymbol, with: "")
+                            isBroken = true
                             break
                         }
                     }
 
                     let (output, shouldStop) = completion.makeOutput(chunk: string, accumulatedString: &accumulatedString)
+
+                    latestOutput = output
 
                     if let output {
                         hasYield = true
@@ -102,7 +107,23 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
 
                 logger?.info("ai llm completion stream", metadata: ["string": "\(accumulatedString)"])
 
-                assert(hasYield, "No output was yielded, isStopped: \(isStopped), string: \(accumulatedString)")
+                if !hasYield {
+                    print(
+                        hasYield,
+                        """
+                        "No output was yielded, 
+                        key: \(completion.key),
+                        latestOutput: \(latestOutput),
+                        isStopped: \(isStopped), 
+                        isBroken: \(isBroken),
+                        string: \(accumulatedString)",
+                        startSymbol: \(completion.startSymbol ?? "nil"),
+                        endSymbol: \(completion.endSymbol ?? "nil"),
+                        """
+                    )
+
+                    assertionFailure()
+                }
 
                 continuation.finish()
             } catch {
@@ -144,6 +165,8 @@ extension AICompletionClient {
 
         do {
             promptString = try await completion.makePromptString(template: template)
+
+            print("prompt string", promptString)
         } catch {
             throw .makingPromptError(error)
         }
