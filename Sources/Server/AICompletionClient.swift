@@ -70,6 +70,7 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
                 var hasMetStartSymbol = completion.startSymbol == nil
                 var accumulatedString = ""
                 var hasYield = false
+                var isStopped = false
 
                 for try await string in stream {
                     var string = string
@@ -94,13 +95,14 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
                     }
 
                     if shouldStop {
+                        isStopped = true
                         break
                     }
                 }
 
                 logger?.info("ai llm completion stream", metadata: ["string": "\(accumulatedString)"])
 
-                assert(hasYield, "No output was yielded, string: \(accumulatedString)")
+                assert(hasYield, "No output was yielded, isStopped: \(isStopped), string: \(accumulatedString)")
 
                 continuation.finish()
             } catch {
