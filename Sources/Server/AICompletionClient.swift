@@ -6,7 +6,7 @@ public protocol AIPromptTemplateProvider: Sendable {
     func promptTemplate(forKey key: String) async throws(AIPromptTemplateProviderError) -> String
 
     #if canImport(Vapor)
-    init()
+        init()
     #endif
 }
 
@@ -69,6 +69,7 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
             do {
                 var hasMetStartSymbol = completion.startSymbol == nil
                 var accumulatedString = ""
+                var hasYield = false
 
                 for try await string in stream {
                     var string = string
@@ -88,6 +89,7 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
                     let (output, shouldStop) = completion.makeOutput(chunk: string, accumulatedString: &accumulatedString)
 
                     if let output {
+                        hasYield = true
                         continuation.yield(output)
                     }
 
@@ -97,6 +99,8 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
                 }
 
                 logger?.info("ai llm completion stream", metadata: ["string": "\(accumulatedString)"])
+
+                assert(hasYield, "No output was yielded, string: \(accumulatedString)")
 
                 continuation.finish()
             } catch {
