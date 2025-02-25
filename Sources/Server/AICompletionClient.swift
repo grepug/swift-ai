@@ -4,10 +4,6 @@ import SwiftAI
 
 public protocol AIPromptTemplateProvider: Sendable {
     func promptTemplate(forKey key: String) async throws(AIPromptTemplateProviderError) -> String
-
-    #if canImport(Vapor)
-        init()
-    #endif
 }
 
 public protocol AICompletionClientKind: Sendable {
