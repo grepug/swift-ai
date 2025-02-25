@@ -24,13 +24,21 @@ extension AIHTTPClient {
             let lines = string.split(separator: "\n")
 
             return lines.map { line in
-                if let result = try? decoder.decode(AIHTTPChunkedResponse.self, from: Data(line.utf8)),
-                    !result.choices.isEmpty
-                {
-                    return result.choices[0].delta.content ?? ""
-                }
+                do {
+                    let result = try decoder.decode(AIHTTPChunkedResponse.self, from: Data(line.utf8))
+                    
+                    if !result.choices.isEmpty {
+                        return result.choices[0].delta.content ?? ""
+                    }
 
-                return String(line)
+                    return ""
+                } catch {
+                    print("result error", error)
+                    
+                    assertionFailure()
+                    
+                    return String(line)
+                }
             }
         } else {
             if let result = try? decoder.decode(AIHTTPResponse.self, from: data), !result.choices.isEmpty {
@@ -112,7 +120,7 @@ public struct AIHTTPResponse: Decodable {
     let model: String
     let choices: [Choice]
     let usage: Usage
-    let system_fingerprint: String
+    let system_fingerprint: String?
 
     public struct Usage: Decodable {
         let prompt_tokens: Int
@@ -142,7 +150,7 @@ public struct AIHTTPChunkedResponse: Decodable {
         let index: Int
         let delta: Delta
         let finish_reason: String?
-        let content_filter_results: ContentFilterResults
+        let content_filter_results: ContentFilterResults?
     }
 
     let id: String
@@ -150,7 +158,7 @@ public struct AIHTTPChunkedResponse: Decodable {
     let created: Int
     let model: String
     let choices: [Choice]
-    let system_fingerprint: String
+    let system_fingerprint: String?
 
     public struct Usage: Decodable {
         let prompt_tokens: Int
@@ -158,5 +166,5 @@ public struct AIHTTPChunkedResponse: Decodable {
         let total_tokens: Int
     }
 
-    let usage: Usage
+    let usage: Usage?
 }
