@@ -19,7 +19,7 @@ public protocol AIStreamCompletion: AILLMCompletion, AIStreamTask {
 }
 
 extension AIStreamCompletion where Cache == String {
-    public func initialOutput() -> String {
+    public func initialCache() -> String {
         ""
     }
 }
