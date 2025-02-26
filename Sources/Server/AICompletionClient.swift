@@ -64,7 +64,7 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
         Task {
             do {
                 var hasMetStartSymbol = completion.startSymbol == nil
-                var accumulatedString = ""
+                var cache = completion.initCache()
                 var hasYield = false
                 var isStopped = false
                 var isBroken = false
@@ -86,7 +86,7 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
                         }
                     }
 
-                    let (output, shouldStop) = completion.makeOutput(chunk: string, accumulatedString: &accumulatedString)
+                    let (output, shouldStop) = completion.makeOutput(chunk: string, cache: &cache)
 
                     latestOutput = output
 
@@ -101,7 +101,7 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
                     }
                 }
 
-                logger?.info("ai llm completion stream", metadata: ["string": "\(accumulatedString)"])
+                logger?.info("ai llm completion stream", metadata: ["cache": "\(cache)"])
 
                 if !hasYield {
                     print(
@@ -109,10 +109,10 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
                         """
                         "No output was yielded, 
                         key: \(completion.key),
-                        latestOutput: \(latestOutput),
+                        latestOutput: \(latestOutput.debugDescription),
                         isStopped: \(isStopped), 
                         isBroken: \(isBroken),
-                        string: \(accumulatedString)",
+                        cache: \(cache)",
                         startSymbol: \(completion.startSymbol ?? "nil"),
                         endSymbol: \(completion.endSymbol ?? "nil"),
                         """

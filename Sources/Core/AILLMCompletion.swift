@@ -12,7 +12,16 @@ public protocol AILLMCompletion: AITask {
 }
 
 public protocol AIStreamCompletion: AILLMCompletion, AIStreamTask {
-    func makeOutput(chunk: String, accumulatedString: inout String) -> (output: Output?, shouldStop: Bool)
+    associatedtype Cache = String
+
+    func makeOutput(chunk: String, cache: inout Cache) -> (output: Output?, shouldStop: Bool)
+    func initCache() -> Cache
+}
+
+extension AIStreamCompletion where Cache == String {
+    public func initialOutput() -> String {
+        ""
+    }
 }
 
 extension AILLMCompletion {
