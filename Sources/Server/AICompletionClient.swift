@@ -64,7 +64,7 @@ public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: A
         Task {
             do {
                 var hasMetStartSymbol = completion.startSymbol == nil
-                var cache = completion.initCache()
+                var cache = completion.initialCache()
                 var hasYield = false
                 var isStopped = false
                 var isBroken = false

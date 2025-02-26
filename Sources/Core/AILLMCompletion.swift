@@ -15,7 +15,7 @@ public protocol AIStreamCompletion: AILLMCompletion, AIStreamTask {
     associatedtype Cache = String
 
     func makeOutput(chunk: String, cache: inout Cache) -> (output: Output?, shouldStop: Bool)
-    func initCache() -> Cache
+    func initialCache() -> Cache
 }
 
 extension AIStreamCompletion where Cache == String {
