@@ -144,7 +144,10 @@ extension AICompletionClient {
                     "model": "\(result.model.name)"
                 ]
             )
+
         }
+
+        print("using preferred model", result.model.name, "apiKey: ", result.model.apiKey.suffix(6), "using preferred:", result.usingPreferred)
 
         return result.model
     }
