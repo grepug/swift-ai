@@ -7,6 +7,7 @@ public enum AIClientError: LocalizedError {
     case makingPromptError(AILLMCompletionError)
     case requestError(Error)
     case streamError(Error)
+    case promptTemplateNotFound(key: String)
 
     public var errorDescription: String? {
         switch self {
@@ -20,6 +21,8 @@ public enum AIClientError: LocalizedError {
             return error.localizedDescription
         case .streamError(let error):
             return error.localizedDescription
+        case .promptTemplateNotFound(let key):
+            return "Prompt template not found for key: \(key)"
         }
     }
 }

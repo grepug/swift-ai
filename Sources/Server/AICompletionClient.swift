@@ -3,27 +3,26 @@ import Logging
 import SwiftAI
 
 public protocol AIPromptTemplateProvider: Sendable {
-    func promptTemplate(forKey key: String) async throws(AIPromptTemplateProviderError) -> String
+    func promptTemplate(forKey key: String) async throws(AIPromptTemplateProviderError) -> String?
 }
 
 public protocol AICompletionClientKind: Sendable {
     associatedtype Client: AIHTTPClient
-    associatedtype PromptTemplateProvider: AIPromptTemplateProvider
 
-    init(models: [any AIModel], client: Client.Type, promptTemplateProvider: PromptTemplateProvider, logger: Logger?)
+    init(models: [any AIModel], client: Client.Type, promptTemplateProviders: [any AIPromptTemplateProvider], logger: Logger?)
 
     func generate<T: AILLMCompletion>(completion: T) async throws(AIClientError) -> T.Output
     func stream<T: AIStreamCompletion>(completion: T) async throws(AIClientError) -> AsyncThrowingStream<T.Output, Error>
 }
 
-public struct AICompletionClient<Client: AIHTTPClient, PromptTemplateProvider: AIPromptTemplateProvider>: AICompletionClientKind {
+public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
     let modelProvider: AIModelProvider
-    let promptTemplateProvider: PromptTemplateProvider
+    let promptTemplateProviders: [any AIPromptTemplateProvider]
     let logger: Logger?
 
-    public init(models: [any AIModel], client: Client.Type, promptTemplateProvider: PromptTemplateProvider, logger: Logger? = nil) {
+    public init(models: [any AIModel], client: Client.Type, promptTemplateProviders: [any AIPromptTemplateProvider], logger: Logger? = nil) {
         self.modelProvider = AIModelProvider(models: models)
-        self.promptTemplateProvider = promptTemplateProvider
+        self.promptTemplateProviders = promptTemplateProviders
         self.logger = logger
     }
 
@@ -153,13 +152,23 @@ extension AICompletionClient {
     }
 
     private func makeRequestStream<T: AILLMCompletion>(completion: T, stream: Bool) async throws(AIClientError) -> AsyncThrowingStream<String, any Error> {
-        let template: String
+        var template: String?
         let promptString: String
 
-        do {
-            template = try await promptTemplateProvider.promptTemplate(forKey: completion.key)
-        } catch {
-            throw .promptTemplateError(error)
+        for provider in promptTemplateProviders {
+            do {
+                template = try await provider.promptTemplate(forKey: completion.key)
+            } catch {
+                throw .promptTemplateError(error)
+            }
+
+            if template != nil {
+                break
+            }
+        }
+
+        guard let template else {
+            throw .promptTemplateNotFound(key: completion.key)
         }
 
         do {
