@@ -38,11 +38,13 @@ struct Client: AIHTTPClient {
     let prompt: String
     let model: any AIModel
     let stream: Bool
+    var timeout: TimeInterval
 
-    init(prompt: String, model: any SwiftAI.AIModel, stream: Bool) {
+    init(prompt: String, model: any SwiftAI.AIModel, stream: Bool, timeout: TimeInterval) {
         self.prompt = prompt
         self.model = model
         self.stream = stream
+        self.timeout = timeout
     }
 
     var urlRequest: URLRequest {

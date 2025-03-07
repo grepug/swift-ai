@@ -7,11 +7,13 @@
         public var prompt: String
         public var model: any AIModel
         public var stream: Bool
+        public var timeout: TimeInterval
 
-        public init(prompt: String, model: any AIModel, stream: Bool) {
+        public init(prompt: String, model: any AIModel, stream: Bool, timeout: TimeInterval) {
             self.prompt = prompt
             self.model = model
             self.stream = stream
+            self.timeout = timeout
         }
 
         public func request() async throws(AIHTTPClientError) -> AsyncThrowingStream<String, any Error> {
@@ -36,7 +38,7 @@
                                 continuation.yield(string)
                             }
                         }
-                        
+
                         continuation.finish()
                     } catch {
                         continuation.finish(throwing: AIHTTPClientError(error: error))

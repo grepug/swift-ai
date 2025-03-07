@@ -180,7 +180,7 @@ extension AICompletionClient {
         }
 
         let model = await getModel(completion: completion)
-        let client = Client(prompt: promptString, model: model, stream: stream)
+        let client = Client(prompt: promptString, model: model, stream: stream, timeout: completion.timeout)
 
         do {
             return try await client.request()

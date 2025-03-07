@@ -6,6 +6,8 @@ public protocol AILLMCompletion: AITask {
 
     var preferredModel: (any AIModel)? { get }
 
+    var timeout: TimeInterval { get }
+
     // this is used for stream completion which indicates the start and end of the output
     var startSymbol: String? { get }
     var endSymbol: String? { get }
@@ -25,6 +27,10 @@ extension AIStreamCompletion where Cache == String {
 }
 
 extension AILLMCompletion {
+    public var timeout: TimeInterval {
+        60
+    }
+
     public var startSymbol: String? {
         nil
     }

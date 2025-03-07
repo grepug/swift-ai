@@ -3,10 +3,11 @@ import SwiftAI
 
 public protocol AIHTTPClient: Sendable {
     var prompt: String { get }
+    var timeout: TimeInterval { get }
     var model: any AIModel { get }
     var stream: Bool { get }
 
-    init(prompt: String, model: any AIModel, stream: Bool)
+    init(prompt: String, model: any AIModel, stream: Bool, timeout: TimeInterval)
 
     func request() async throws(AIHTTPClientError) -> AsyncThrowingStream<String, any Error>
 }
