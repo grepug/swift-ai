@@ -116,17 +116,17 @@ public struct AIHTTPResponse: Decodable {
             let content: String
         }
 
-        let index: Int
+        let index: Int?
         let message: Message
-        let finish_reason: String
+        let finish_reason: String?
     }
 
     let id: String?
     let object: String?
-    let created: Int
+    let created: Int?
     let model: String
     let choices: [Choice]
-    let usage: Usage
+    let usage: Usage?
     let system_fingerprint: String?
 
     public struct Usage: Decodable {
@@ -144,17 +144,17 @@ public struct AIHTTPChunkedResponse: Decodable {
         }
 
         public struct ContentFilterResults: Decodable {
-            let hate: FilterResult
-            let self_harm: FilterResult
-            let sexual: FilterResult
-            let violence: FilterResult
+            let hate: FilterResult?
+            let self_harm: FilterResult?
+            let sexual: FilterResult?
+            let violence: FilterResult?
 
             public struct FilterResult: Decodable {
-                let filtered: Bool
+                let filtered: Bool?
             }
         }
 
-        let index: Int
+        let index: Int?
         let delta: Delta
         let finish_reason: String?
         let content_filter_results: ContentFilterResults?
@@ -162,15 +162,15 @@ public struct AIHTTPChunkedResponse: Decodable {
 
     let id: String?
     let object: String?
-    let created: Int
-    let model: String
+    let created: Int?
+    let model: String?
     let choices: [Choice]
     let system_fingerprint: String?
 
     public struct Usage: Decodable {
-        let prompt_tokens: Int
-        let completion_tokens: Int
-        let total_tokens: Int
+        let prompt_tokens: Int?
+        let completion_tokens: Int?
+        let total_tokens: Int?
     }
 
     let usage: Usage?
