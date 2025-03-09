@@ -116,8 +116,6 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
                         endSymbol: \(completion.endSymbol ?? "nil"),
                         """
                     )
-
-                    assertionFailure()
                 }
 
                 continuation.finish()
