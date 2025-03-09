@@ -17,14 +17,14 @@ extension AIHTTPClient {
         .init(model: model, prompt: prompt, stream: stream)
     }
 
-    public func decodeResponse(data: Data) -> [String] {
+    public func decodeResponse(data: Data) throws -> [String] {
         let decoder = JSONDecoder()
         let string = String(data: data, encoding: .utf8)!
 
         if stream {
             let lines = string.split(separator: "\n")
 
-            return lines.map { line in
+            return try lines.map { line in
                 do {
                     let result = try decoder.decode(AIHTTPChunkedResponse.self, from: Data(line.utf8))
 
@@ -36,15 +36,19 @@ extension AIHTTPClient {
                         return result.choices[0].delta.content ?? ""
                     }
 
+                    if let message = result.message {
+                        throw AIHTTPClientError(message: message)
+                    }
+
                     assertionFailure()
 
                     return ""
                 } catch {
-                    print("result error", error)
+                    if let error = error as? AIHTTPClientError {
+                        throw error
+                    }
 
-                    assertionFailure()
-
-                    return String(line)
+                    throw AIHTTPClientError(message: String(line))
                 }
             }
         } else {
@@ -56,12 +60,12 @@ extension AIHTTPClient {
         return [string]
     }
 
-    public func decodeResponse(string: String) -> [String] {
+    public func decodeResponse(string: String) throws -> [String] {
         guard let data = string.data(using: .utf8) else {
             return [string]
         }
 
-        return decodeResponse(data: data)
+        return try decodeResponse(data: data)
     }
 }
 
@@ -128,6 +132,7 @@ public struct AIHTTPResponse: Decodable {
     let choices: [Choice]
     let usage: Usage?
     let system_fingerprint: String?
+    let message: String?
 
     public struct Usage: Decodable {
         let prompt_tokens: Int
@@ -166,6 +171,7 @@ public struct AIHTTPChunkedResponse: Decodable {
     let model: String?
     let choices: [Choice]
     let system_fingerprint: String?
+    let message: String?
 
     public struct Usage: Decodable {
         let prompt_tokens: Int?

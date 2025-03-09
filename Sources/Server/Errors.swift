@@ -47,9 +47,13 @@ public struct AIHTTPClientError: LocalizedError {
     }
 
     public init(error: Error) {
-        self.message = error.localizedDescription
-        self.statusCode = nil
-        self.data = nil
+        if let error = error as? AIHTTPClientError {
+            self = error
+        } else {
+            self.message = error.localizedDescription
+            self.statusCode = nil
+            self.data = nil
+        }
     }
 }
 

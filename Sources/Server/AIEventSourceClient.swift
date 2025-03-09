@@ -32,7 +32,7 @@
                     do {
                         for try await item in client.stream {
                             let item = item.replacingOccurrences(of: "data:", with: "")
-                            let strings = decodeResponse(string: item)
+                            let strings = try decodeResponse(string: item)
 
                             for string in strings {
                                 continuation.yield(string)
@@ -62,7 +62,7 @@
                             )
                         )
                     } else {
-                        let strings = decodeResponse(data: data)
+                        let strings = try decodeResponse(data: data)
 
                         if let string = strings.first {
                             continuation.yield(string)

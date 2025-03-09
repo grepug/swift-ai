@@ -65,7 +65,7 @@ struct Client: AIHTTPClient {
             Task {
                 do {
                     for try await item in stream {
-                        let strings = decodeResponse(string: item)
+                        let strings = try decodeResponse(string: item)
 
                         for string in strings {
                             continuation.yield(string)
@@ -80,7 +80,7 @@ struct Client: AIHTTPClient {
         } else {
             do {
                 let (data, _) = try await URLSession.shared.data(for: urlRequest)
-                let strings = decodeResponse(data: data)
+                let strings = try decodeResponse(data: data)
 
                 for string in strings {
                     continuation.yield(string)
