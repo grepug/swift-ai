@@ -40,6 +40,10 @@ public protocol AITask: Sendable, Codable {
     init(input: Input)
 }
 
+public struct EmptyInput: AITaskInput {
+    public init() {}
+}
+
 extension AITask {
     public var key: String {
         Self.kind

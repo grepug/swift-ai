@@ -28,13 +28,15 @@
             let (newStream, continuation) = AsyncThrowingStream<T.Output, Error>.makeStream()
             let stream = EventSourceClient(request: request).stream
 
-            Task {
+            let task = Task {
                 do {
                     var partialOutput = aiTask.initialOutput()
 
                     let decoder = JSONDecoder()
 
                     for try await chunk in stream {
+                        try Task.checkCancellation()
+
                         let data = chunk.data(using: .utf8) ?? Data()
                         let response = try decoder.decode(AIServerStreamResponseContent<T.StreamChunk>.self, from: data)
 
@@ -50,6 +52,15 @@
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
+                }
+            }
+
+            continuation.onTermination = { reason in
+                switch reason {
+                case .cancelled:
+                    task.cancel()
+                default:
+                    break
                 }
             }
 
