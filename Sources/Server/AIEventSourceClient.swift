@@ -2,6 +2,7 @@
     import EventSource
     import Foundation
     import SwiftAI
+    import ConcurrencyUtils
 
     public struct AIEventSourceClient: AIHTTPClient {
         public var prompt: String

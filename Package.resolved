@@ -1,6 +1,15 @@
 {
-  "originHash" : "84d5284efb5cfe8ff8414360278566ccfb931b3870d40246e84f1948f2d0da9e",
+  "originHash" : "fd2df3b675e15cb9b4a65a22a66cc88dd165d16cb0b1ddabf3d71f87269c4b3d",
   "pins" : [
+    {
+      "identity" : "concurrency-utils",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/grepug/concurrency-utils.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "3a2a556850bd044226772ffc80350f047bb20652"
+      }
+    },
     {
       "identity" : "event-source",
       "kind" : "remoteSourceControl",
@@ -8,6 +17,24 @@
       "state" : {
         "branch" : "master",
         "revision" : "9573201033c457f0786e4419fea8752bde0a52c1"
+      }
+    },
+    {
+      "identity" : "swift-async-algorithms",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-async-algorithms",
+      "state" : {
+        "revision" : "4c3ea81f81f0a25d0470188459c6d4bf20cf2f97",
+        "version" : "1.0.3"
+      }
+    },
+    {
+      "identity" : "swift-collections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-collections.git",
+      "state" : {
+        "revision" : "671108c96644956dddcd89dd59c203dcdb36cec7",
+        "version" : "1.1.4"
       }
     },
     {

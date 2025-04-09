@@ -27,6 +27,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/grepug/event-source.git", branch: "master"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
+        .package(url: "https://github.com/grepug/concurrency-utils.git", branch: "main"),
     ],
     targets: [
         .target(
@@ -38,6 +39,7 @@ let package = Package(
             dependencies: [
                 "SwiftAI",
                 .product(name: "EventSource", package: "event-source"),
+                .product(name: "ConcurrencyUtils", package: "concurrency-utils"),
             ],
             path: "Sources/Client"
         ),
@@ -47,6 +49,7 @@ let package = Package(
                 "SwiftAI",
                 .product(name: "EventSource", package: "event-source"),
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "ConcurrencyUtils", package: "concurrency-utils"),
             ],
             path: "Sources/Server"
         ),
