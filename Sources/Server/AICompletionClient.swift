@@ -172,8 +172,6 @@ extension AICompletionClient {
 
         do {
             promptString = try await completion.makePromptString(template: template)
-
-            print("prompt string", promptString)
         } catch {
             throw .makingPromptError(error)
         }
