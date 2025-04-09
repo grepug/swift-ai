@@ -25,13 +25,13 @@
 
         public func stream<T: AIStreamTask>(aiTask: T) -> AsyncThrowingStream<T.Output, Error> {
             let request = makeURLRequest(task: aiTask)
-            let (newStream, continuation) = AsyncThrowingStream<T.Output, Error>.makeStream()
-            let stream = EventSourceClient(request: request).stream
 
-            let task = Task {
+            return AsyncThrowingStream<T.Output, Error>.makeCancellable { continuation in
+                let esClient = EventSourceClient(request: request)
+                let stream = esClient.stream
+
                 do {
                     var partialOutput = aiTask.initialOutput()
-
                     let decoder = JSONDecoder()
 
                     for try await chunk in stream {
@@ -54,14 +54,6 @@
                     continuation.finish(throwing: error)
                 }
             }
-
-            continuation.onTermination = { reason in
-                if case .cancelled = reason {
-                    task.cancel()
-                }
-            }
-
-            return newStream
         }
 
         public func request<T: AITask>(aiTask: T) async throws -> T.Output {

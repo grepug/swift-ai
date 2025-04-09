@@ -23,12 +23,10 @@
             urlRequest.setValue("Bearer \(model.apiKey)", forHTTPHeaderField: "Authorization")
             urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-            let (newStream, continuation) = AsyncThrowingStream<String, any Error>.makeStream()
-
             if stream {
                 let client = EventSourceClient(request: urlRequest)
 
-                let processingTask = Task {
+                return AsyncThrowingStream<String, Error>.makeCancellable { continuation in
                     do {
                         for try await item in client.stream {
                             try Task.checkCancellation()
@@ -47,45 +45,38 @@
                         continuation.finish(throwing: AIHTTPClientError(error: error))
                     }
                 }
-
-                // Handle consumer cancellation
-                continuation.onTermination = { reason in
-                    if case .cancelled = reason {
-                        processingTask.cancel()
-                    }
-                }
             } else {
-                let data: Data
-                let response: HTTPURLResponse
+                // Non-streaming case remains largely unchanged
+                return AsyncThrowingStream { continuation in
+                    Task {
+                        do {
+                            let result = try await URLSession.shared.data(for: urlRequest)
 
-                do {
-                    let result = try await URLSession.shared.data(for: urlRequest)
+                            let data = result.0
+                            let response = result.1 as! HTTPURLResponse
 
-                    data = result.0
-                    response = result.1 as! HTTPURLResponse
+                            if String(response.statusCode).first != "2" {
+                                continuation.finish(
+                                    throwing: AIHTTPClientError(
+                                        statusCode: response.statusCode,
+                                        data: data
+                                    )
+                                )
+                            } else {
+                                let strings = try decodeResponse(data: data)
 
-                    if String(response.statusCode).first != "2" {
-                        continuation.finish(
-                            throwing: AIHTTPClientError(
-                                statusCode: response.statusCode,
-                                data: data
-                            )
-                        )
-                    } else {
-                        let strings = try decodeResponse(data: data)
+                                if let string = strings.first {
+                                    continuation.yield(string)
+                                }
 
-                        if let string = strings.first {
-                            continuation.yield(string)
+                                continuation.finish()
+                            }
+                        } catch {
+                            continuation.finish(throwing: AIHTTPClientError(error: error))
                         }
-
-                        continuation.finish()
                     }
-                } catch {
-                    continuation.finish(throwing: AIHTTPClientError(error: error))
                 }
             }
-
-            return newStream
         }
     }
 #endif

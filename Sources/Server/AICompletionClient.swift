@@ -57,10 +57,9 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
     }
 
     public func stream<T: AIStreamCompletion>(completion: T) async throws(AIClientError) -> AsyncThrowingStream<T.Output, Error> {
-        let (newStream, continuation) = AsyncThrowingStream<T.Output, Error>.makeStream()
         let stream = try await makeRequestStream(completion: completion, stream: true)
 
-        let processingTask = Task {
+        return AsyncThrowingStream<T.Output, Error>.makeCancellable { continuation in
             do {
                 var hasMetStartSymbol = completion.startSymbol == nil
                 var cache = completion.initialCache()
@@ -124,20 +123,11 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
                 continuation.finish(throwing: CancellationError())
             } catch {
                 assert(error is AIHTTPClientError)
-
                 continuation.finish(throwing: error)
             }
+        } onCancel: {
+            logger?.warning("ai llm completion stream cancelled", metadata: ["key": "\(completion.key)"])
         }
-
-        // Handle consumer cancellation
-        continuation.onTermination = { reason in
-            if case .cancelled = reason {
-                processingTask.cancel()
-                logger?.info("Stream consumer cancelled, terminating processing task")
-            }
-        }
-
-        return newStream
     }
 }
 
