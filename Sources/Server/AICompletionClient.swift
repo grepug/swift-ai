@@ -60,7 +60,7 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
         let (newStream, continuation) = AsyncThrowingStream<T.Output, Error>.makeStream()
         let stream = try await makeRequestStream(completion: completion, stream: true)
 
-        Task {
+        let processingTask = Task {
             do {
                 var hasMetStartSymbol = completion.startSymbol == nil
                 var cache = completion.initialCache()
@@ -70,6 +70,7 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
                 var latestOutput: T.Output?
 
                 for try await string in stream {
+                    try Task.checkCancellation()
                     var string = string
 
                     if !hasMetStartSymbol, let startSymbol = completion.startSymbol {
@@ -119,10 +120,20 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
                 }
 
                 continuation.finish()
+            } catch is CancellationError {
+                continuation.finish(throwing: CancellationError())
             } catch {
                 assert(error is AIHTTPClientError)
 
                 continuation.finish(throwing: error)
+            }
+        }
+
+        // Handle consumer cancellation
+        continuation.onTermination = { reason in
+            if case .cancelled = reason {
+                processingTask.cancel()
+                logger?.info("Stream consumer cancelled, terminating processing task")
             }
         }
 

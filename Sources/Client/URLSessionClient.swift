@@ -56,11 +56,8 @@
             }
 
             continuation.onTermination = { reason in
-                switch reason {
-                case .cancelled:
+                if case .cancelled = reason {
                     task.cancel()
-                default:
-                    break
                 }
             }
 

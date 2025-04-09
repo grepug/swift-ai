@@ -28,9 +28,10 @@
             if stream {
                 let client = EventSourceClient(request: urlRequest)
 
-                Task {
+                let processingTask = Task {
                     do {
                         for try await item in client.stream {
+                            try Task.checkCancellation()
                             let item = item.replacingOccurrences(of: "data:", with: "")
                             let strings = try decodeResponse(string: item)
 
@@ -40,8 +41,17 @@
                         }
 
                         continuation.finish()
+                    } catch is CancellationError {
+                        continuation.finish(throwing: CancellationError())
                     } catch {
                         continuation.finish(throwing: AIHTTPClientError(error: error))
+                    }
+                }
+
+                // Handle consumer cancellation
+                continuation.onTermination = { reason in
+                    if case .cancelled = reason {
+                        processingTask.cancel()
                     }
                 }
             } else {
