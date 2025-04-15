@@ -108,7 +108,7 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
                         hasYield,
                         """
                         "No output was yielded, 
-                        key: \(completion.key),
+                        key: \(completion.path),
                         latestOutput: \(latestOutput.debugDescription),
                         isStopped: \(isStopped), 
                         isBroken: \(isBroken),
@@ -127,7 +127,7 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
                 continuation.finish(throwing: error)
             }
         } onCancel: {
-            logger?.warning("ai llm completion stream cancelled", metadata: ["key": "\(completion.key)"])
+            logger?.warning("ai llm completion stream cancelled", metadata: ["key": "\(completion.path)"])
         }
     }
 }
@@ -157,7 +157,7 @@ extension AICompletionClient {
 
         for provider in promptTemplateProviders {
             do {
-                template = try await provider.promptTemplate(forKey: completion.key)
+                template = try await provider.promptTemplate(forKey: completion.path)
             } catch {
                 throw .promptTemplateError(error)
             }
@@ -168,7 +168,7 @@ extension AICompletionClient {
         }
 
         guard let template else {
-            throw .promptTemplateNotFound(key: completion.key)
+            throw .promptTemplateNotFound(key: completion.path)
         }
 
         do {

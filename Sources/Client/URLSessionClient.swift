@@ -14,7 +14,7 @@
         }
 
         func makeURLRequest<T: AITask>(task: T) -> URLRequest {
-            let url = makeURL(task.key)
+            let url = makeURL(task.path)
             var request = URLRequest(url: url)
 
             request.httpMethod = "POST"

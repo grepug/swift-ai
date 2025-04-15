@@ -34,7 +34,7 @@ public protocol AITask: Sendable, Codable {
 
     static var kind: String { get }
 
-    var key: String { get }
+    var path: String { get }
     var input: Input { get }
 
     init(input: Input)
@@ -45,7 +45,7 @@ public struct EmptyInput: AITaskInput {
 }
 
 extension AITask {
-    public var key: String {
+    public var path: String {
         Self.kind
     }
 }
