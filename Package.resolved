@@ -1,5 +1,5 @@
 {
-  "originHash" : "272bff0a41fdd8936f282d5826e12d75863261b98038294ccaf9f51d96ea9c2d",
+  "originHash" : "7494f5df750885e847352d8237c90101811d34a1e380812ded71868ba2df32e3",
   "pins" : [
     {
       "identity" : "concurrency-utils",
@@ -11,12 +11,30 @@
       }
     },
     {
+      "identity" : "errorkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/FlineDev/ErrorKit.git",
+      "state" : {
+        "revision" : "da2f8f1214152966468711a0502cb86accbe7d3b",
+        "version" : "1.0.0"
+      }
+    },
+    {
       "identity" : "event-source",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/grepug/event-source.git",
       "state" : {
         "branch" : "master",
         "revision" : "9573201033c457f0786e4419fea8752bde0a52c1"
+      }
+    },
+    {
+      "identity" : "swift-asn1",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-asn1.git",
+      "state" : {
+        "revision" : "ae33e5941bb88d88538d0a6b19ca0b01e6c76dcf",
+        "version" : "1.3.1"
       }
     },
     {
@@ -35,6 +53,15 @@
       "state" : {
         "revision" : "671108c96644956dddcd89dd59c203dcdb36cec7",
         "version" : "1.1.4"
+      }
+    },
+    {
+      "identity" : "swift-crypto",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-crypto.git",
+      "state" : {
+        "revision" : "e8d6eba1fef23ae5b359c46b03f7d94be2f41fed",
+        "version" : "3.12.3"
       }
     },
     {

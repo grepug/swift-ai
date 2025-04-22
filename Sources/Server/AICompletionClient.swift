@@ -1,4 +1,5 @@
 import ConcurrencyUtils
+import ErrorKit
 import Foundation
 import Logging
 import SwiftAI
@@ -60,7 +61,7 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
     public func stream<T: AIStreamCompletion>(completion: T) async throws(AIClientError) -> AsyncThrowingStream<T.Output, Error> {
         let stream = try await makeRequestStream(completion: completion, stream: true)
 
-        return AsyncThrowingStream<T.Output, Error>.makeCancellable { continuation in
+        return .makeCancellable { continuation in
             do {
                 var hasMetStartSymbol = completion.startSymbol == nil
                 var cache = completion.initialCache()
@@ -123,7 +124,6 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
             } catch is CancellationError {
                 continuation.finish(throwing: CancellationError())
             } catch {
-                assert(error is AIHTTPClientError)
                 continuation.finish(throwing: error)
             }
         } onCancel: {

@@ -1,15 +1,17 @@
+import ErrorKit
 import Foundation
 import SwiftAI
 
-public enum AIClientError: LocalizedError {
+public enum AIClientError: Throwable, Catching {
     case generateTextNothingReturned
     case promptTemplateError(AIPromptTemplateProviderError)
     case makingPromptError(AILLMCompletionError)
     case requestError(Error)
     case streamError(Error)
     case promptTemplateNotFound(key: String)
+    case caught(Error)
 
-    public var errorDescription: String? {
+    public var userFriendlyMessage: String {
         switch self {
         case .generateTextNothingReturned:
             return "Generate text nothing returned"
@@ -23,6 +25,8 @@ public enum AIClientError: LocalizedError {
             return error.localizedDescription
         case .promptTemplateNotFound(let key):
             return "Prompt template not found for key: \(key)"
+        case .caught(let error):
+            return ErrorKit.userFriendlyMessage(for: error)
         }
     }
 }
