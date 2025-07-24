@@ -30,7 +30,6 @@
                 return AsyncThrowingStream<String, Error>.makeCancellable { continuation in
                     do {
                         for try await item in client.stream {
-                            try Task.checkCancellation()
                             let item = item.replacingOccurrences(of: "data:", with: "")
                             let strings = try decodeResponse(string: item)
 

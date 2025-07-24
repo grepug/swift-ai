@@ -4,6 +4,7 @@ public struct VolcEngine: AIModel {
     public let name: String
     public let baseURL: URL
     public let apiKey: String
+    public var thinkingDisabled: Bool?
 
     public enum Name {
         case deepseek_3
@@ -17,9 +18,10 @@ public struct VolcEngine: AIModel {
         }
     }
 
-    public init(apiKey: String, name: Name? = nil, baseURL: URL? = nil) {
+    public init(apiKey: String, name: Name? = nil, baseURL: URL? = nil, thinkingDisabled: Bool? = nil) {
         self.apiKey = apiKey
         self.name = name?.rawValue ?? Name.deepseek_3.rawValue
         self.baseURL = baseURL ?? URL(string: "https://ark.cn-beijing.volces.com/api/v3")!
+        self.thinkingDisabled = thinkingDisabled
     }
 }
