@@ -91,6 +91,7 @@ public struct AIHTTPClientRequestInfo {
         let model: String
         let messages: [[String: String]]
         let stream: Bool
+        var thinking: [String: String]? = nil
 
         // let max_tokens: Int = 60
         // let temperature: Double = 0.5
@@ -104,7 +105,8 @@ public struct AIHTTPClientRequestInfo {
         let body = Body(
             model: model.name,
             messages: [["role": "user", "content": prompt]],
-            stream: stream
+            stream: stream,
+            thinking: model.thinkingDisabled == true ? ["type": "disabled"] : nil,
         )
 
         let data = try! JSONEncoder().encode(body)
