@@ -3,6 +3,9 @@
     import Foundation
     import SwiftAI
     import ConcurrencyUtils
+    import Logging
+
+    private let logger = Logger(label: "swift-ai_URLSessionClient")
 
     public struct URLSessionClient {
         let accessToken: String
@@ -52,6 +55,12 @@
 
                     continuation.finish()
                 } catch {
+                    logger.warning(
+                        "Error occurred while streaming",
+                        metadata: [
+                            "error": "\(error)"
+                        ])
+
                     continuation.finish(throwing: error)
                 }
             }

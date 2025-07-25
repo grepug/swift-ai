@@ -71,7 +71,6 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
                 var latestOutput: T.Output?
 
                 for try await string in stream {
-                    try Task.checkCancellation()
                     var string = string
 
                     if !hasMetStartSymbol, let startSymbol = completion.startSymbol {
@@ -124,6 +123,7 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
             } catch is CancellationError {
                 continuation.finish(throwing: CancellationError())
             } catch {
+                logger?.warning("Error occurred while streaming", metadata: ["error": "\(error)"])
                 continuation.finish(throwing: error)
             }
         } onCancel: {
@@ -159,6 +159,12 @@ extension AICompletionClient {
             do {
                 template = try await provider.promptTemplate(forKey: completion.path)
             } catch {
+                logger?.critical(
+                    "Error occurred while fetching prompt template",
+                    metadata: [
+                        "error": "\(error)",
+                        "key": "\(completion.path)",
+                    ])
                 throw .promptTemplateError(error)
             }
 
@@ -168,12 +174,16 @@ extension AICompletionClient {
         }
 
         guard let template else {
+            logger?.critical("Prompt template not found", metadata: ["key": "\(completion.path)"])
+
             throw .promptTemplateNotFound(key: completion.path)
         }
 
         do {
             promptString = try await completion.makePromptString(template: template)
         } catch {
+            logger?.warning("Error occurred while making prompt string", metadata: ["error": "\(error)"])
+
             throw .makingPromptError(error)
         }
 
@@ -183,6 +193,7 @@ extension AICompletionClient {
         do {
             return try await client.request()
         } catch {
+            logger?.warning("Error occurred while making request", metadata: ["error": "\(error)"])
             throw .requestError(error)
         }
     }
