@@ -9,7 +9,28 @@ public protocol AIHTTPClient: Sendable {
 
     init(prompt: String, model: any AIModel, stream: Bool, timeout: TimeInterval)
 
-    func request() async throws(AIHTTPClientError) -> AsyncThrowingStream<String, any Error>
+    func request() async throws(AIHTTPClientError) -> AsyncThrowingStream<AIHTTPResponseChunk, any Error>
+}
+
+public struct AIHTTPResponseChunk: Codable, Sendable {
+    public enum FinishReason: Codable, Sendable {
+        case stop
+        case other(String)
+
+        init(string: String) {
+            if string == "stop" {
+                self = .stop
+            } else {
+                self = .other(string)
+            }
+        }
+    }
+
+    public let content: String
+    public var reasoningContent: String?
+    public let promptTokens: Int
+    public let completionTokens: Int
+    public let finishReason: FinishReason?
 }
 
 extension AIHTTPClient {
@@ -17,23 +38,28 @@ extension AIHTTPClient {
         .init(model: model, prompt: prompt, stream: stream)
     }
 
-    public func decodeResponse(data: Data) throws -> [String] {
+    public func decodeResponse(data: Data) throws -> [AIHTTPResponseChunk] {
         let decoder = JSONDecoder()
         let string = String(data: data, encoding: .utf8)!
 
         if stream {
             let lines = string.split(separator: "\n")
 
-            return try lines.map { line in
+            return try lines.compactMap { line -> AIHTTPResponseChunk? in
                 do {
                     let result = try decoder.decode(AIHTTPChunkedResponse.self, from: Data(line.utf8))
 
-                    // if let reason = result.choices.first?.finish_reason {
-                    //     print("finish reason", reason)
-                    // }
-
                     if !result.choices.isEmpty {
-                        return result.choices[0].delta.content ?? ""
+                        let firstChoice = result.choices[0]
+                        let usage = result.usage
+
+                        return AIHTTPResponseChunk(
+                            content: firstChoice.delta.content ?? "",
+                            reasoningContent: firstChoice.delta.reasoning_content,
+                            promptTokens: usage?.prompt_tokens ?? 0,
+                            completionTokens: usage?.completion_tokens ?? 0,
+                            finishReason: firstChoice.finish_reason.map { .init(string: $0) },
+                        )
                     }
 
                     if let message = result.message {
@@ -42,7 +68,7 @@ extension AIHTTPClient {
 
                     assertionFailure()
 
-                    return ""
+                    return nil
                 } catch {
                     if let error = error as? AIHTTPClientError {
                         throw error
@@ -53,16 +79,26 @@ extension AIHTTPClient {
             }
         } else {
             if let result = try? decoder.decode(AIHTTPResponse.self, from: data), !result.choices.isEmpty {
-                return [result.choices[0].message.content]
+                return [
+                    AIHTTPResponseChunk(
+                        content: result.choices[0].message.content,
+                        reasoningContent: nil,
+                        promptTokens: result.usage?.prompt_tokens ?? 0,
+                        completionTokens: result.usage?.completion_tokens ?? 0,
+                        finishReason: result.choices[0].finish_reason.map { .init(string: $0) },
+                    )
+                ]
             }
         }
 
-        return [string]
+        assertionFailure("Failed to decode AIHTTPResponse or AIHTTPChunkedResponse")
+
+        return []
     }
 
-    public func decodeResponse(string: String) throws -> [String] {
+    public func decodeResponse(string: String) throws -> [AIHTTPResponseChunk] {
         guard let data = string.data(using: .utf8) else {
-            return [string]
+            return []
         }
 
         return try decodeResponse(data: data)

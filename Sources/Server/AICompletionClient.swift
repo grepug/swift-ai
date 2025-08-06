@@ -8,32 +8,103 @@ public protocol AIPromptTemplateProvider: Sendable {
     func promptTemplate(forKey key: String) async throws(AIPromptTemplateProviderError) -> String?
 }
 
+public protocol AIModelProviderProtocol: Sendable {
+    func model(forKey key: String) async throws -> any AIModel
+}
+
+public enum AICompletionClientEventStopReason: Codable {
+    case llmFinishReasonStop
+    case streamFinished
+    case cancelled
+    case error(String)
+}
+
+public protocol AICompletionClientEventHandler: Sendable {
+    associatedtype Cache: Sendable
+
+    func makeCache() -> Cache
+
+    func setParams(
+        _ params: String,
+        cache: inout Cache
+    )
+
+    func onChunkReceived(
+        chunk: AIHTTPResponseChunk,
+        forKey key: String,
+        cache: inout Cache
+    )
+
+    func onStop(
+        reason: AICompletionClientEventStopReason,
+        forKey key: String,
+        cache: inout Cache
+    )
+}
+
 public protocol AICompletionClientKind: Sendable {
     associatedtype Client: AIHTTPClient
+    associatedtype EventHandler: AICompletionClientEventHandler
 
-    init(models: [any AIModel], client: Client.Type, promptTemplateProviders: [any AIPromptTemplateProvider], logger: Logger?)
+    init(
+        client: Client.Type,
+        modelProvider: any AIModelProviderProtocol,
+        promptTemplateProviders: [any AIPromptTemplateProvider],
+        eventHandler: EventHandler,
+        logger: Logger?
+    )
 
     func generate<T: AILLMCompletion>(completion: T) async throws(AIClientError) -> T.Output
     func stream<T: AIStreamCompletion>(completion: T) async throws(AIClientError) -> AsyncThrowingStream<T.Output, Error>
 }
 
-public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
-    let modelProvider: AIModelProvider
+public struct AICompletionClient<Client: AIHTTPClient, EventHandler: AICompletionClientEventHandler>: AICompletionClientKind {
+    let modelProvider: any AIModelProviderProtocol
     let promptTemplateProviders: [any AIPromptTemplateProvider]
+    let eventHandler: EventHandler
     let logger: Logger?
 
-    public init(models: [any AIModel], client: Client.Type, promptTemplateProviders: [any AIPromptTemplateProvider], logger: Logger? = nil) {
-        self.modelProvider = AIModelProvider(models: models)
+    public init(
+        client: Client.Type,
+        modelProvider: any AIModelProviderProtocol,
+        promptTemplateProviders: [any AIPromptTemplateProvider],
+        eventHandler: EventHandler,
+        logger: Logger? = nil
+    ) {
+        self.modelProvider = modelProvider
         self.promptTemplateProviders = promptTemplateProviders
+        self.eventHandler = eventHandler
         self.logger = logger
     }
 
     public func generate<T: AILLMCompletion>(completion: T) async throws(AIClientError) -> T.Output {
         let stream = try await makeRequestStream(completion: completion, stream: false)
+        var eventCache = eventHandler.makeCache()
+
+        eventHandler.setParams(
+            String(data: try! JSONEncoder().encode(completion.input.normalized), encoding: .utf8) ?? "",
+            cache: &eventCache
+        )
 
         do {
-            for try await string in stream {
-                var string = string
+            for try await chunk in stream {
+                // Notify the event handler about the received chunk
+                eventHandler.onChunkReceived(
+                    chunk: chunk,
+                    forKey: completion.path,
+                    cache: &eventCache
+                )
+
+                if case .stop = chunk.finishReason {
+                    // Handle completion
+                    eventHandler.onStop(
+                        reason: .llmFinishReasonStop,
+                        forKey: completion.path,
+                        cache: &eventCache
+                    )
+                }
+
+                var string = chunk.content
 
                 if let startSymbol = completion.startSymbol {
                     // remove anything before the start symbol(included)
@@ -52,6 +123,14 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
                 return completion.makeOutput(string: string)
             }
         } catch {
+            assertionFailure("Error occurred while generating: \(error) for key: \(completion.path)")
+
+            eventHandler.onStop(
+                reason: .error(error.localizedDescription),
+                forKey: completion.path,
+                cache: &eventCache
+            )
+
             throw .streamError(error)
         }
 
@@ -60,6 +139,12 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
 
     public func stream<T: AIStreamCompletion>(completion: T) async throws(AIClientError) -> AsyncThrowingStream<T.Output, Error> {
         let stream = try await makeRequestStream(completion: completion, stream: true)
+        var eventCache = eventHandler.makeCache()
+
+        eventHandler.setParams(
+            String(data: try! JSONEncoder().encode(completion.input.normalized), encoding: .utf8) ?? "",
+            cache: &eventCache
+        )
 
         return .makeCancellable { continuation in
             do {
@@ -70,8 +155,28 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
                 var isBroken = false
                 var latestOutput: T.Output?
 
-                for try await string in stream {
-                    var string = string
+                for try await chunk in stream {
+                    // Notify the event handler about the received chunk
+                    eventHandler.onChunkReceived(
+                        chunk: chunk,
+                        forKey: completion.path,
+                        cache: &eventCache
+                    )
+
+                    // Handle completion
+                    if case .stop = chunk.finishReason {
+                        eventHandler.onStop(
+                            reason: .llmFinishReasonStop,
+                            forKey: completion.path,
+                            cache: &eventCache
+                        )
+                    }
+
+                    guard !isStopped && !isBroken else {
+                        continue
+                    }
+
+                    var string = chunk.content
 
                     if !hasMetStartSymbol, let startSymbol = completion.startSymbol {
                         hasMetStartSymbol = string.contains(startSymbol)
@@ -82,7 +187,7 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
                         if string.contains(endSymbol) {
                             string = string.replacingOccurrences(of: endSymbol, with: "")
                             isBroken = true
-                            break
+                            continue
                         }
                     }
 
@@ -97,7 +202,7 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
 
                     if shouldStop {
                         isStopped = true
-                        break
+                        continue
                     }
                 }
 
@@ -119,39 +224,59 @@ public struct AICompletionClient<Client: AIHTTPClient>: AICompletionClientKind {
                     )
                 }
 
+                eventHandler.onStop(
+                    reason: .streamFinished,
+                    forKey: completion.path,
+                    cache: &eventCache
+                )
+
                 continuation.finish()
             } catch is CancellationError {
-                continuation.finish(throwing: CancellationError())
+                // Handle cancellation
+                assertionFailure("Cancellation error occurred")
+
+                eventHandler.onStop(
+                    reason: .cancelled,
+                    forKey: completion.path,
+                    cache: &eventCache
+                )
             } catch {
+                eventHandler.onStop(
+                    reason: .error(error.localizedDescription),
+                    forKey: completion.path,
+                    cache: &eventCache
+                )
+
                 logger?.warning("Error occurred while streaming", metadata: ["error": "\(error)"])
+
                 continuation.finish(throwing: error)
+
+                assertionFailure("Error occurred while streaming: \(error)")
             }
         } onCancel: {
             logger?.warning("ai llm completion stream cancelled", metadata: ["key": "\(completion.path)"])
+
+            eventHandler.onStop(
+                reason: .cancelled,
+                forKey: completion.path,
+                cache: &eventCache
+            )
         }
     }
 }
 
 extension AICompletionClient {
-    private func getModel<T: AILLMCompletion>(completion: T) async -> any AIModel {
-        let result = await modelProvider.getModel(preferredModel: completion.preferredModel)
-
-        if result.usingPreferred {
-            logger?.info(
-                "using preferred model",
-                metadata: [
-                    "model": "\(result.model.name)"
-                ]
-            )
-
+    private func getModel<T: AILLMCompletion>(completion: T) async throws(AIClientError) -> any AIModel {
+        do {
+            return try await modelProvider.model(forKey: completion.path)
+        } catch {
+            logger?.warning("Error occurred while fetching model", metadata: ["error": "\(error)", "key": "\(completion.path)"])
+            assertionFailure("Model not found")
+            throw AIClientError.modelNotFound(key: completion.path)
         }
-
-        print("using preferred model", result.model.name, "apiKey: ", result.model.apiKey.suffix(6), "using preferred:", result.usingPreferred)
-
-        return result.model
     }
 
-    private func makeRequestStream<T: AILLMCompletion>(completion: T, stream: Bool) async throws(AIClientError) -> AsyncThrowingStream<String, any Error> {
+    private func makeRequestStream<T: AILLMCompletion>(completion: T, stream: Bool) async throws(AIClientError) -> AsyncThrowingStream<AIHTTPResponseChunk, any Error> {
         var template: String?
         let promptString: String
 
@@ -187,7 +312,7 @@ extension AICompletionClient {
             throw .makingPromptError(error)
         }
 
-        let model = await getModel(completion: completion)
+        let model = try await getModel(completion: completion)
         let client = Client(prompt: promptString, model: model, stream: stream, timeout: completion.timeout)
 
         do {

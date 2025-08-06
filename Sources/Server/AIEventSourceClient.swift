@@ -17,7 +17,7 @@
             self.timeout = timeout
         }
 
-        public func request() async throws(AIHTTPClientError) -> AsyncThrowingStream<String, any Error> {
+        public func request() async throws(AIHTTPClientError) -> AsyncThrowingStream<AIHTTPResponseChunk, any Error> {
             var urlRequest = URLRequest(url: requestInfo.endpoint)
             urlRequest.httpMethod = "POST"
             urlRequest.httpBody = requestInfo.body
@@ -27,14 +27,14 @@
             if stream {
                 let client = EventSourceClient(request: urlRequest)
 
-                return AsyncThrowingStream<String, Error>.makeCancellable { continuation in
+                return .makeCancellable { continuation in
                     do {
                         for try await item in client.stream {
                             let item = item.replacingOccurrences(of: "data:", with: "")
-                            let strings = try decodeResponse(string: item)
+                            let chunks = try decodeResponse(string: item)
 
-                            for string in strings {
-                                continuation.yield(string)
+                            for chunk in chunks {
+                                continuation.yield(chunk)
                             }
                         }
 
@@ -47,7 +47,7 @@
                 }
             } else {
                 // Non-streaming case remains largely unchanged
-                return AsyncThrowingStream { continuation in
+                return .makeCancellable { continuation in
                     Task {
                         do {
                             let result = try await URLSession.shared.data(for: urlRequest)
@@ -63,10 +63,10 @@
                                     )
                                 )
                             } else {
-                                let strings = try decodeResponse(data: data)
+                                let chunks = try decodeResponse(data: data)
 
-                                if let string = strings.first {
-                                    continuation.yield(string)
+                                for chunk in chunks {
+                                    continuation.yield(chunk)
                                 }
 
                                 continuation.finish()

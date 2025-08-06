@@ -9,6 +9,7 @@ public enum AIClientError: Throwable, Catching {
     case requestError(Error)
     case streamError(Error)
     case promptTemplateNotFound(key: String)
+    case modelNotFound(key: String)
     case caught(Error)
 
     public var userFriendlyMessage: String {
@@ -25,6 +26,8 @@ public enum AIClientError: Throwable, Catching {
             return error.localizedDescription
         case .promptTemplateNotFound(let key):
             return "Prompt template not found for key: \(key)"
+        case .modelNotFound(let key):
+            return "Model not found for key: \(key)"
         case .caught(let error):
             return ErrorKit.userFriendlyMessage(for: error)
         }
