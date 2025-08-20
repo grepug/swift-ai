@@ -13,7 +13,7 @@ public protocol AIHTTPClient: Sendable {
 }
 
 public struct AIHTTPResponseChunk: Codable, Sendable {
-    public enum FinishReason: Codable, Sendable {
+    public enum FinishReason: Codable, Sendable, Equatable {
         case stop
         case other(String)
 
@@ -31,6 +31,20 @@ public struct AIHTTPResponseChunk: Codable, Sendable {
     public let promptTokens: Int
     public let completionTokens: Int
     public let finishReason: FinishReason?
+
+    public init(
+        content: String,
+        reasoningContent: String? = nil,
+        promptTokens: Int,
+        completionTokens: Int,
+        finishReason: FinishReason? = nil
+    ) {
+        self.content = content
+        self.reasoningContent = reasoningContent
+        self.promptTokens = promptTokens
+        self.completionTokens = completionTokens
+        self.finishReason = finishReason
+    }
 }
 
 extension AIHTTPClient {
