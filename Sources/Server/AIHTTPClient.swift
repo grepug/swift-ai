@@ -66,9 +66,10 @@ extension AIHTTPClient {
                     if !result.choices.isEmpty {
                         let firstChoice = result.choices[0]
                         let usage = result.usage
+                        let content = firstChoice.delta.content ?? ""
 
                         return AIHTTPResponseChunk(
-                            content: firstChoice.delta.content ?? "",
+                            content: content,
                             reasoningContent: firstChoice.delta.reasoning_content,
                             promptTokens: usage?.prompt_tokens ?? 0,
                             completionTokens: usage?.completion_tokens ?? 0,
@@ -77,10 +78,11 @@ extension AIHTTPClient {
                     }
 
                     if let message = result.message {
+                        assertionFailure("Unexpected message in chunked response")
                         throw AIHTTPClientError(message: message)
                     }
 
-                    assertionFailure()
+                    assertionFailure("Unexpected response format")
 
                     return nil
                 } catch {

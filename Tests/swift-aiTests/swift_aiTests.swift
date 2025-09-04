@@ -74,7 +74,7 @@ func testTestingUtilities() async throws {
     // These are non-optional types, so just verify they work
     #expect(templateProvider.templates.count >= 0)
     #expect(modelProvider.models.count >= 0)
-    #expect(eventHandler.makeCacheCallCount >= 0)
+    #expect(eventHandler.setParamsCallCount >= 0)
     #expect(type(of: client) == AICompletionClient<MockAIHTTPClient, MockAICompletionClientEventHandler>.self)
 }
 
@@ -118,12 +118,11 @@ func testMockStreamWorkflow() async throws {
 func testMockEventHandler() {
     let eventHandler = MockAICompletionClientEventHandler()
 
-    var cache = eventHandler.makeCache()
-    #expect(eventHandler.makeCacheCallCount == 1)
-
-    eventHandler.setParams("test params", cache: &cache)
+    // Test setParams
+    eventHandler.setParams("test params")
     #expect(eventHandler.setParamsCallCount == 1)
     #expect(eventHandler.lastParams == "test params")
+    #expect(eventHandler.getParams() == "test params")
 
     let chunk = AIHTTPResponseChunk(
         content: "test content",
@@ -133,15 +132,31 @@ func testMockEventHandler() {
         finishReason: nil
     )
 
-    eventHandler.onChunkReceived(chunk: chunk, forKey: "test-key", cache: &cache)
+    // Test onChunkReceived
+    eventHandler.onChunkReceived(chunk: chunk, forKey: "test-key")
     #expect(eventHandler.onChunkReceivedCallCount == 1)
     #expect(eventHandler.lastChunk?.content == "test content")
     #expect(eventHandler.lastChunkKey == "test-key")
+    #expect(eventHandler.getChunks().count == 1)
+    #expect(eventHandler.getChunks()[0].content == "test content")
 
-    eventHandler.onStop(reason: .llmFinishReasonStop, forKey: "test-key", cache: &cache)
+    // Test onStop
+    eventHandler.onStop(reason: .llmFinishReasonStop, forKey: "test-key")
     #expect(eventHandler.onStopCallCount == 1)
     #expect(eventHandler.lastStopReason == .llmFinishReasonStop)
     #expect(eventHandler.lastStopKey == "test-key")
+    #expect(eventHandler.getStopReason() == .llmFinishReasonStop)
+
+    // Test event capture functionality
+    let allEvents = eventHandler.getAllEvents()
+    #expect(allEvents.count == 3)
+    #expect(allEvents[0].event == "setParams")
+    #expect(allEvents[1].event == "onChunkReceived")
+    #expect(allEvents[2].event == "onStop")
+
+    let chunkEvents = eventHandler.getEventsOfType("onChunkReceived")
+    #expect(chunkEvents.count == 1)
+    #expect(chunkEvents[0].data["content"] as? String == "test content")
 }
 
 @Test("MockAICompletionClientKind functionality")

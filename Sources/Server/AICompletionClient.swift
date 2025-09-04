@@ -12,7 +12,7 @@ public protocol AIModelProviderProtocol: Sendable {
     func model(forKey key: String) async throws -> any AIModel
 }
 
-public enum AICompletionClientEventStopReason: Codable {
+public enum AICompletionClientEventStopReason: Codable, Equatable {
     case llmFinishReasonStop
     case streamFinished
     case cancelled
@@ -20,25 +20,18 @@ public enum AICompletionClientEventStopReason: Codable {
 }
 
 public protocol AICompletionClientEventHandler: Sendable {
-    associatedtype Cache: Sendable
-
-    func makeCache() -> Cache
-
     func setParams(
         _ params: String,
-        cache: inout Cache
     )
 
     func onChunkReceived(
         chunk: AIHTTPResponseChunk,
         forKey key: String,
-        cache: inout Cache
     )
 
     func onStop(
         reason: AICompletionClientEventStopReason,
         forKey key: String,
-        cache: inout Cache
     )
 }
 
@@ -79,11 +72,9 @@ public struct AICompletionClient<Client: AIHTTPClient, EventHandler: AICompletio
 
     public func generate<T: AILLMCompletion>(completion: T) async throws(AIClientError) -> T.Output {
         let stream = try await makeRequestStream(completion: completion, stream: false)
-        var eventCache = eventHandler.makeCache()
 
         eventHandler.setParams(
             String(data: try! JSONEncoder().encode(completion.input.normalized), encoding: .utf8) ?? "",
-            cache: &eventCache
         )
 
         do {
@@ -92,7 +83,6 @@ public struct AICompletionClient<Client: AIHTTPClient, EventHandler: AICompletio
                 eventHandler.onChunkReceived(
                     chunk: chunk,
                     forKey: completion.path,
-                    cache: &eventCache
                 )
 
                 if case .stop = chunk.finishReason {
@@ -100,7 +90,6 @@ public struct AICompletionClient<Client: AIHTTPClient, EventHandler: AICompletio
                     eventHandler.onStop(
                         reason: .llmFinishReasonStop,
                         forKey: completion.path,
-                        cache: &eventCache
                     )
                 }
 
@@ -128,7 +117,6 @@ public struct AICompletionClient<Client: AIHTTPClient, EventHandler: AICompletio
             eventHandler.onStop(
                 reason: .error(error.localizedDescription),
                 forKey: completion.path,
-                cache: &eventCache
             )
 
             throw .streamError(error)
@@ -139,11 +127,9 @@ public struct AICompletionClient<Client: AIHTTPClient, EventHandler: AICompletio
 
     public func stream<T: AIStreamCompletion>(completion: T) async throws(AIClientError) -> AsyncThrowingStream<T.Output, Error> {
         let stream = try await makeRequestStream(completion: completion, stream: true)
-        var eventCache = eventHandler.makeCache()
 
         eventHandler.setParams(
             String(data: try! JSONEncoder().encode(completion.input.normalized), encoding: .utf8) ?? "",
-            cache: &eventCache
         )
 
         return .makeCancellable { continuation in
@@ -160,7 +146,6 @@ public struct AICompletionClient<Client: AIHTTPClient, EventHandler: AICompletio
                     eventHandler.onChunkReceived(
                         chunk: chunk,
                         forKey: completion.path,
-                        cache: &eventCache
                     )
 
                     // Handle completion
@@ -168,7 +153,6 @@ public struct AICompletionClient<Client: AIHTTPClient, EventHandler: AICompletio
                         eventHandler.onStop(
                             reason: .llmFinishReasonStop,
                             forKey: completion.path,
-                            cache: &eventCache
                         )
                     }
 
@@ -227,7 +211,6 @@ public struct AICompletionClient<Client: AIHTTPClient, EventHandler: AICompletio
                 eventHandler.onStop(
                     reason: .streamFinished,
                     forKey: completion.path,
-                    cache: &eventCache
                 )
 
                 continuation.finish()
@@ -238,13 +221,11 @@ public struct AICompletionClient<Client: AIHTTPClient, EventHandler: AICompletio
                 eventHandler.onStop(
                     reason: .cancelled,
                     forKey: completion.path,
-                    cache: &eventCache
                 )
             } catch {
                 eventHandler.onStop(
                     reason: .error(error.localizedDescription),
                     forKey: completion.path,
-                    cache: &eventCache
                 )
 
                 logger?.warning("Error occurred while streaming", metadata: ["error": "\(error)"])
@@ -253,13 +234,14 @@ public struct AICompletionClient<Client: AIHTTPClient, EventHandler: AICompletio
 
                 assertionFailure("Error occurred while streaming: \(error)")
             }
+        } onError: { error in
+            print("@@@ Error occurred while streaming: \(String(describing: error))")
         } onCancel: {
             logger?.warning("ai llm completion stream cancelled", metadata: ["key": "\(completion.path)"])
 
             eventHandler.onStop(
                 reason: .cancelled,
                 forKey: completion.path,
-                cache: &eventCache
             )
         }
     }
