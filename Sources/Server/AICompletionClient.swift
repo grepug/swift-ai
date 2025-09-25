@@ -107,7 +107,7 @@ public struct AICompletionClient<Client: AIHTTPClient, EventHandler: AICompletio
                     string = string.replacingOccurrences(of: "\(escapedEndSymbol).*", with: "", options: .regularExpression)
                 }
 
-                logger?.info("ai llm completion generate", metadata: ["string": "\(string)"])
+                logger?.debug("ai llm completion generate", metadata: ["string": "\(string)"])
 
                 return completion.makeOutput(string: string)
             }
