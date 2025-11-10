@@ -5,6 +5,7 @@ public protocol AIModel: Sendable {
     var baseURL: URL { get }
     var apiKey: String { get }
 
+    var temperature: Double? { get }
     var thinkingDisabled: Bool? { get }
 }
 
