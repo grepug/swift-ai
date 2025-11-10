@@ -5,6 +5,7 @@ public struct VolcEngine: AIModel {
     public let baseURL: URL
     public let apiKey: String
     public var thinkingDisabled: Bool?
+    public var temperature: Double?
 
     public enum Name {
         case deepseek_3

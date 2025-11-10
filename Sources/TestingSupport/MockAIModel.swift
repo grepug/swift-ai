@@ -7,17 +7,20 @@ public struct MockAIModel: AIModel {
     public let baseURL: URL
     public let apiKey: String
     public let thinkingDisabled: Bool?
+    public var temperature: Double?
 
     public init(
         name: String = "mock-model",
         baseURL: URL = URL(string: "https://api.mock.com")!,
         apiKey: String = "mock-api-key",
-        thinkingDisabled: Bool? = nil
+        thinkingDisabled: Bool? = nil,
+        temperature: Double? = nil
     ) {
         self.name = name
         self.baseURL = baseURL
         self.apiKey = apiKey
         self.thinkingDisabled = thinkingDisabled
+        self.temperature = temperature
     }
 }
 

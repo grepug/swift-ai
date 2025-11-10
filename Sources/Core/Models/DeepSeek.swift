@@ -4,11 +4,13 @@ public struct DeepSeek: AIModel {
     public let name: String
     public let baseURL: URL
     public let apiKey: String
+    public var temperature: Double?
 
-    public init(apiKey: String, name: String = "DeepSeek", baseURL: URL? = nil) {
+    public init(apiKey: String, name: String = "DeepSeek", baseURL: URL? = nil, temperature: Double? = nil) {
         self.apiKey = apiKey
         self.name = name
         self.baseURL = baseURL ?? URL(string: "https://api.deepseek.com/v1")!
+        self.temperature = temperature
     }
 }
 
@@ -16,6 +18,7 @@ public struct SiliconFlow: AIModel {
     public let name: String
     public let baseURL: URL
     public let apiKey: String
+    public var temperature: Double?
 
     public enum Name {
         case deepSeek_2_5
@@ -35,9 +38,10 @@ public struct SiliconFlow: AIModel {
         }
     }
 
-    public init(apiKey: String, name: Name? = nil, baseURL: URL? = nil) {
+    public init(apiKey: String, name: Name? = nil, baseURL: URL? = nil, temperature: Double? = nil) {
         self.apiKey = apiKey
         self.name = name?.rawValue ?? Name.deepSeek_2_5.rawValue
         self.baseURL = baseURL ?? URL(string: "https://api.siliconflow.cn/v1")!
+        self.temperature = temperature
     }
 }

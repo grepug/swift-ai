@@ -6,7 +6,7 @@ extension AICompletionNormalizedInput: AITaskInput {
     }
 }
 
-public protocol AITaskInput: Codable, Sendable {
+public protocol AITaskInput: Codable, Sendable, Hashable {
     var normalized: AICompletionNormalizedInput { get }
 }
 
